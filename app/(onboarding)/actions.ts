@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { businessSchema, slugify } from "@/lib/validation/business";
@@ -19,7 +19,12 @@ export async function getOwnedBusiness(ownerId: string) {
     const rows = await db
       .select()
       .from(schema.businesses)
-      .where(eq(schema.businesses.ownerId, ownerId))
+      .where(
+        and(
+          eq(schema.businesses.ownerId, ownerId),
+          isNull(schema.businesses.deletedAt),
+        ),
+      )
       .limit(1);
     return rows[0] ?? null;
   } catch {
@@ -129,21 +134,57 @@ export async function createBusiness(
   }
 
   try {
-    await db.insert(schema.businesses).values({
-      ownerId: user.id,
-      name: values.name,
-      slug: values.slug,
-      type: values.type,
-      ownerName: values.ownerName,
-      phone: values.phone,
-      gst: values.gst ?? null,
-      addressLine: values.addressLine,
-      city: values.city,
-      state: values.state,
-      pincode: values.pincode,
-      logoUrl,
-      timezone: values.timezone,
-      currency: values.currency,
+    await db.transaction(async (tx) => {
+      // Mirror row may not exist yet if the auth trigger has not been applied.
+      await tx
+        .insert(schema.users)
+        .values({
+          id: user.id,
+          email: user.email ?? "",
+          fullName: values.ownerName,
+        })
+        .onConflictDoNothing();
+
+      const [created] = await tx
+        .insert(schema.businesses)
+        .values({
+          ownerId: user.id,
+          name: values.name,
+          slug: values.slug,
+          type: values.type,
+          ownerName: values.ownerName,
+          phone: values.phone,
+          gst: values.gst ?? null,
+          addressLine: values.addressLine,
+          city: values.city,
+          state: values.state,
+          pincode: values.pincode,
+          logoUrl,
+          timezone: values.timezone,
+          currency: values.currency,
+        })
+        .returning({ id: schema.businesses.id });
+
+      await tx.insert(schema.businessSettings).values({
+        businessId: created.id,
+        logoUrl,
+        currency: values.currency,
+        timezone: values.timezone,
+        gstNumber: values.gst ?? null,
+        contactEmail: user.email ?? null,
+        contactPhone: values.phone,
+        businessStatus: "active",
+      });
+
+      await tx.insert(schema.staffMembers).values({
+        businessId: created.id,
+        userId: user.id,
+        name: values.ownerName,
+        email: user.email ?? null,
+        phone: values.phone,
+        role: "owner",
+        status: "active",
+      });
     });
   } catch (error) {
     const duplicate =

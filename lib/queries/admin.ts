@@ -678,3 +678,145 @@ export async function getPlatformSettings() {
 }
 
 export { ACTIVE_ORDER_STATUSES };
+
+
+/* -------------------------------------------------- Usage & fraud signals */
+
+export async function getUsageMonitoring() {
+  const db = getDb();
+
+  const [byBusiness, messages, totals] = await Promise.all([
+    db
+      .select({
+        businessId: schema.businesses.id,
+        name: schema.businesses.name,
+        orders30: sql<number>`(
+          select count(*)::int from ${schema.orders} o
+          where o.business_id = ${OUTER_BUSINESS_ID}
+            and coalesce(o.placed_at, o.created_at) >= now() - interval '30 days'
+        )`,
+        scans30: sql<number>`(
+          select count(*)::int from ${schema.qrScans} q
+          where q.business_id = ${OUTER_BUSINESS_ID}
+            and q.created_at >= now() - interval '30 days'
+        )`,
+        menuItems: sql<number>`(
+          select count(*)::int from ${schema.menuItems} m
+          where m.business_id = ${OUTER_BUSINESS_ID} and m.deleted_at is null
+        )`,
+        tables: sql<number>`(
+          select count(*)::int from ${schema.restaurantTables} t
+          where t.business_id = ${OUTER_BUSINESS_ID} and t.deleted_at is null
+        )`,
+        staff: sql<number>`(
+          select count(*)::int from ${schema.staffMembers} s
+          where s.business_id = ${OUTER_BUSINESS_ID} and s.deleted_at is null
+        )`,
+      })
+      .from(schema.businesses)
+      .where(isNull(schema.businesses.deletedAt))
+      .orderBy(desc(sql`(
+        select count(*) from ${schema.orders} o
+        where o.business_id = ${OUTER_BUSINESS_ID}
+          and coalesce(o.placed_at, o.created_at) >= now() - interval '30 days'
+      )`))
+      .limit(50),
+
+    db
+      .select({
+        channel: schema.outboundMessages.channel,
+        status: schema.outboundMessages.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.outboundMessages)
+      .groupBy(schema.outboundMessages.channel, schema.outboundMessages.status),
+
+    db
+      .select({
+        orders: sql<number>`count(*)::int`,
+        scans: sql<number>`(select count(*)::int from ${schema.qrScans})`,
+      })
+      .from(schema.orders),
+  ]);
+
+  return { byBusiness, messages, totals: totals[0] ?? { orders: 0, scans: 0 } };
+}
+
+/**
+ * Heuristic fraud signals. These are leads for a human to review, never
+ * automatic enforcement.
+ */
+export async function getFraudSignals() {
+  const db = getDb();
+
+  const [failureSpikes, cancellations, refunds, duplicateGuests] = await Promise.all([
+    // Many failed payments in a short window suggests card testing.
+    db
+      .select({
+        businessId: schema.businesses.id,
+        name: schema.businesses.name,
+        failed: sql<number>`count(*)::int`,
+        distinctOrders: sql<number>`count(distinct ${schema.payments.orderId})::int`,
+      })
+      .from(schema.payments)
+      .innerJoin(schema.businesses, eq(schema.payments.businessId, schema.businesses.id))
+      .where(
+        and(
+          eq(schema.payments.status, "failed"),
+          sql`${schema.payments.createdAt} >= now() - interval '24 hours'`,
+        ),
+      )
+      .groupBy(schema.businesses.id, schema.businesses.name)
+      .having(sql`count(*) >= 5`)
+      .orderBy(desc(sql`count(*)`)),
+
+    // A high cancellation rate can mask order-then-refund abuse.
+    db
+      .select({
+        businessId: schema.businesses.id,
+        name: schema.businesses.name,
+        cancelled: sql<number>`count(*) filter (where ${schema.orders.status} = 'cancelled')::int`,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(schema.orders)
+      .innerJoin(schema.businesses, eq(schema.orders.businessId, schema.businesses.id))
+      .where(sql`${schema.orders.createdAt} >= now() - interval '7 days'`)
+      .groupBy(schema.businesses.id, schema.businesses.name)
+      .having(sql`count(*) filter (where ${schema.orders.status} = 'cancelled') >= 3`)
+      .orderBy(desc(sql`count(*) filter (where ${schema.orders.status} = 'cancelled')`)),
+
+    db
+      .select({
+        businessId: schema.businesses.id,
+        name: schema.businesses.name,
+        refunded: sql<number>`coalesce(sum(${schema.payments.refundedAmount}), 0)::bigint`,
+      })
+      .from(schema.payments)
+      .innerJoin(schema.businesses, eq(schema.payments.businessId, schema.businesses.id))
+      .where(sql`${schema.payments.refundedAmount} > 0`)
+      .groupBy(schema.businesses.id, schema.businesses.name)
+      .orderBy(desc(sql`sum(${schema.payments.refundedAmount})`))
+      .limit(20),
+
+    // One phone ordering at many restaurants in a day is unusual.
+    db
+      .select({
+        guestPhone: schema.orders.guestPhone,
+        venues: sql<number>`count(distinct ${schema.orders.businessId})::int`,
+        orders: sql<number>`count(*)::int`,
+      })
+      .from(schema.orders)
+      .where(
+        and(
+          sql`${schema.orders.guestPhone} is not null`,
+          sql`${schema.orders.createdAt} >= now() - interval '24 hours'`,
+        ),
+      )
+      .groupBy(schema.orders.guestPhone)
+      .having(sql`count(distinct ${schema.orders.businessId}) >= 3`)
+      .orderBy(desc(sql`count(*)`))
+      .limit(20),
+  ]);
+
+  return { failureSpikes, cancellations, refunds: refunds.map((r) => ({ ...r, refunded: Number(r.refunded) })), duplicateGuests };
+}

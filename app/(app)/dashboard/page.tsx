@@ -95,8 +95,8 @@ export default async function DashboardPage() {
       <StatGrid counts={data.counts} />
 
       {/* Recent orders + side panels */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="min-w-0">
           <h2 className="text-micro font-medium uppercase tracking-[0.16em] text-ink-300">
             Recent orders
           </h2>
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <MenuStatus menu={data.menu} timezone={timezone} />
           <BusinessProfile rows={profileRows} />
         </div>

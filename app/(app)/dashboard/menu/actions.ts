@@ -258,6 +258,12 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
     .limit(1);
   if (!category) return fail("Choose a category.", { categoryId: "Category not found." });
 
+  // Read outside the transaction: the pool hands one connection to the
+  // transaction, so a nested query issued through `db` would wait on itself.
+  const slugs = values.id
+    ? new Set<string>()
+    : await takenSlugs(business.id, "menuItems");
+
   let imageUrl: string | null = null;
   const image = formData.get("image");
   if (image instanceof File && image.size > 0) {
@@ -300,7 +306,6 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
             ),
           );
       } else {
-        const slugs = await takenSlugs(business.id, "menuItems");
         const [{ value: nextOrder } = { value: 0 }] = await tx
           .select({
             value: sql<number>`coalesce(max(${schema.menuItems.sortOrder}), -1) + 1`,

@@ -31,10 +31,13 @@ export function MenuBuilder({
   categories,
   currency,
   businessName,
+  openNew,
 }: {
   categories: MenuCategory[];
   currency: string;
   businessName: string;
+  /** Deep link from the dashboard quick actions. */
+  openNew?: "category" | "item";
 }) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -42,10 +45,14 @@ export function MenuBuilder({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<
     { item: MenuItemRow | null; categoryId: string } | null
-  >(null);
+  >(
+    openNew === "item" && categories.length > 0
+      ? { item: null, categoryId: categories[0].id }
+      : null,
+  );
   const [editingCategory, setEditingCategory] = useState<
     MenuCategory | null | "new"
-  >(null);
+  >(openNew === "category" ? "new" : null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const [dragCategory, setDragCategory] = useState<string | null>(null);
@@ -130,11 +137,11 @@ export function MenuBuilder({
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div>
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0">
         {/* Toolbar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <input
               type="search"
               value={query}
@@ -388,7 +395,7 @@ export function MenuBuilder({
       </div>
 
       {/* Instant preview */}
-      <div className="xl:sticky xl:top-24 xl:self-start">
+      <div className="min-w-0 xl:sticky xl:top-24 xl:self-start">
         <MenuPreview
           categories={visible}
           currency={currency}

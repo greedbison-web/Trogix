@@ -44,8 +44,8 @@ export function StatGrid({
 /* ----------------------------------------------------------- Quick actions */
 
 const ACTIONS = [
-  { label: "Add category", href: "/dashboard/menu/categories/new" },
-  { label: "Add menu item", href: "/dashboard/menu/items/new" },
+  { label: "Add category", href: "/dashboard/menu?new=category" },
+  { label: "Add menu item", href: "/dashboard/menu?new=item" },
   { label: "Generate QR", href: "/dashboard/tables" },
   { label: "View orders", href: "/dashboard/orders" },
 ];

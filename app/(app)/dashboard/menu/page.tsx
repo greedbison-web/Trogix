@@ -7,7 +7,15 @@ import { MenuBuilder } from "./MenuBuilder";
 
 export const metadata: Metadata = { title: "Menu" };
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
+  const params = await searchParams;
+  const openNew =
+    params.new === "category" || params.new === "item" ? params.new : undefined;
+
   const user = await getUser();
   if (!user) redirect("/login");
 
@@ -36,6 +44,7 @@ export default async function MenuPage() {
         categories={categories}
         currency={record.business.currency}
         businessName={record.business.name}
+        openNew={openNew}
       />
     </div>
   );

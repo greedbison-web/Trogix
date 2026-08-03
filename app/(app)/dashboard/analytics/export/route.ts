@@ -3,7 +3,17 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getUser } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/queries/business";
 import { getAnalytics } from "@/lib/queries/analytics";
-import { formatMoney } from "@/lib/format";
+
+/**
+ * pdf-lib's standard fonts are WinAnsi-encoded and cannot render the rupee
+ * sign, so PDF output uses the ISO currency code and plain digits instead.
+ */
+function pdfMoney(minor: number, currency: string): string {
+  return `${currency} ${(minor / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -134,7 +144,14 @@ export async function GET(request: Request) {
       page = pdf.addPage([595.28, 841.89]);
       y = 780;
     }
-    page.drawText(text, { x: 48 + indent, y, size, font, color });
+    // Defensive: standard PDF fonts are WinAnsi-only.
+    page.drawText(text.replace(/[^\x20-\xFF]/g, ""), {
+      x: 48 + indent,
+      y,
+      size,
+      font,
+      color,
+    });
     y -= size + 6;
   };
 
@@ -149,17 +166,17 @@ export async function GET(request: Request) {
   line(`Analytics · last ${data.days} days · generated ${stamp}`, 10, sans, muted);
 
   heading("Summary");
-  line(`Revenue today: ${formatMoney(data.today.revenue, business.currency)}`);
+  line(`Revenue today: ${pdfMoney(data.today.revenue, business.currency)}`);
   line(`Orders today: ${data.today.orders}`);
-  line(`Revenue (${data.days}d): ${formatMoney(data.period.revenue, business.currency)}`);
+  line(`Revenue (${data.days}d): ${pdfMoney(data.period.revenue, business.currency)}`);
   line(`Orders (${data.days}d): ${data.period.orders}`);
-  line(`Average order: ${formatMoney(data.period.average, business.currency)}`);
+  line(`Average order: ${pdfMoney(data.period.average, business.currency)}`);
 
   heading("Best sellers");
   if (data.topItems.length === 0) line("No sales yet.", 10, sans, muted);
   for (const item of data.topItems) {
     line(
-      `${item.name} — ${item.quantity} sold, ${formatMoney(item.revenue, business.currency)}`,
+      `${item.name} — ${item.quantity} sold, ${pdfMoney(item.revenue, business.currency)}`,
     );
   }
 
@@ -173,7 +190,7 @@ export async function GET(request: Request) {
   if (data.tableUse.length === 0) line("No tables yet.", 10, sans, muted);
   for (const table of data.tableUse) {
     line(
-      `Table ${table.label} — ${table.orders} orders, ${formatMoney(table.revenue, business.currency)}`,
+      `Table ${table.label} — ${table.orders} orders, ${pdfMoney(table.revenue, business.currency)}`,
     );
   }
 

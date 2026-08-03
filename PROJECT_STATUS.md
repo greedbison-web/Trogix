@@ -66,6 +66,30 @@ settle from Razorpay to the restaurant's bank.
 Live orders board with status transitions, full-bleed kitchen display with
 ticket ageing, restaurant analytics over completed orders.
 
+### Restaurant settings
+Profile, branding (logo, colours, receipt footer), GST and service charge,
+operating hours per weekday, payment status, staff management and a role
+permission matrix.
+
+### QR management
+Per-table selection, bulk token regeneration, and server-rendered PDF export in
+three layouts (table tents 6-up, stickers 12-up, posters 1-up).
+
+### Menu experience
+Add-ons per item, and an availability scheduler with a weekday bitmask and time
+window (midnight-wrapping supported), honoured on the guest menu in the
+restaurant's timezone.
+
+### Order timeline
+Append-only `order_events` records every status transition. Kitchen notes are
+staff-only and never shown to guests.
+
+### Guest messaging
+Durable `outbound_messages` queue with WhatsApp and email adapters. Rows are
+written before delivery, so an unconfigured provider queues rather than drops.
+The kitchen display raises a browser notification and chime on new tickets;
+permission is requested on click only.
+
 ### Admin platform
 Separate route group at `/admin`, gated by `platform_admins` membership.
 
@@ -81,6 +105,7 @@ Separate route group at `/admin`, gated by `platform_admins` membership.
 | Notification centre | `/admin/notifications` |
 | Platform settings | `/admin/settings` |
 | Security | `/admin/security` |
+| Usage & risk | `/admin/usage` |
 
 **Capability model.** Every privileged action names a capability, not a role.
 Roles: `owner`, `admin`, `support`, `readonly`. The matrix is rendered in the
@@ -120,6 +145,9 @@ snapshot name, variant and unit price so history survives menu edits.
 0002_menu_flags.sql             spice level, recommended, bestseller
 0003_payment_accounts.sql       Razorpay Connect + awaiting_payment status
 0004_platform_admin.sql         admin platform tables, RLS, seeded settings
+0005_settings_and_addons.sql    operating hours, add-ons, item scheduling
+0006_order_timeline.sql         order_events, kitchen notes
+0007_messaging.sql              outbound_messages queue
 ```
 
 ---
@@ -135,6 +163,13 @@ RAZORPAY_CLIENT_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 APP_ENCRYPTION_KEY=          # 32-byte secret; rotating it forces reconnects
 NEXT_PUBLIC_APP_URL=
+
+# Guest messaging (optional — messages queue when unset)
+WHATSAPP_API_URL=https://graph.facebook.com/v21.0
+WHATSAPP_TOKEN=
+WHATSAPP_PHONE_ID=
+RESEND_API_KEY=
+EMAIL_FROM=
 ```
 
 The app builds and runs with none of these set — screens degrade to empty
@@ -178,13 +213,24 @@ Against a real PostgreSQL 16 instance, not mocks:
   `POST /v1/orders` are written to the documented API but have never run
   against Razorpay — no credentials. Everything downstream of them is verified.
 - **No deployment.** Nothing has been deployed; no CI.
-- **No production hardening.** Deferred by instruction: rate limiting, CSP,
-  error boundaries, structured logging, load testing.
-- **WhatsApp automation, reviews, loyalty** — modules from the original vision,
-  not started.
-- **Email delivery.** Templates are editable in Platform Settings but nothing
-  sends them yet.
+- **Rate limiting and structured logging** are not implemented; load testing
+  has not been done.
+- **Reviews and loyalty** — modules from the original vision, not started.
+- **Messaging providers unverified.** The WhatsApp and Resend adapters are
+  written to their documented APIs but have never run against them — no
+  credentials. Queuing, templating and the failure path are verified.
 - **`business_settings.payment_mode` / `upi_id`** are dead columns since the
   Razorpay migration; drop them once nothing reads them.
+
+## Deployment
+
+`vercel.json` pins the Mumbai region and raises the timeout for the webhook and
+the two document generators. Security headers (CSP, HSTS, nosniff, frame-deny,
+permissions policy) are set in `next.config.ts`. `/api/health` reports liveness
+and database reachability for uptime checks. Global error and 404 boundaries
+are in place.
+
+Nothing has been deployed. Before a first deploy: set the environment above,
+run all eight migrations, and grant the first platform admin.
 
 See `TODO.md` for the working list.

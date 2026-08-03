@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["bom1"],
+  "functions": {
+    "app/api/webhooks/razorpay/route.ts": { "maxDuration": 30 },
+    "app/(app)/dashboard/tables/pdf/route.ts": { "maxDuration": 60 },
+    "app/(app)/dashboard/analytics/export/route.ts": { "maxDuration": 60 }
+  }
+}

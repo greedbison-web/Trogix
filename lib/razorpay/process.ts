@@ -1,6 +1,7 @@
 import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { queueMessage } from "@/lib/messaging/send";
 
 export type ProcessResult = { ok: boolean; message: string | null };
 
@@ -160,7 +161,64 @@ export async function processRazorpayEvent(
     };
   }
 
+  if (captured) await notifyGuest(payment.orderId, "order_confirmed");
+  if (failed) await notifyGuest(payment.orderId, "payment_failed");
+
   return { ok: true, message: null };
+}
+
+/** Sends the guest an update on both channels we hold contact details for. */
+export async function notifyGuest(
+  orderId: string,
+  template: "order_confirmed" | "order_ready" | "order_completed" | "payment_failed",
+) {
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({
+        businessId: schema.orders.businessId,
+        orderNumber: schema.orders.orderNumber,
+        guestName: schema.orders.guestName,
+        guestPhone: schema.orders.guestPhone,
+        total: schema.orders.total,
+        currency: schema.orders.currency,
+        businessName: schema.businesses.name,
+        tableLabel: schema.restaurantTables.label,
+      })
+      .from(schema.orders)
+      .innerJoin(schema.businesses, eq(schema.orders.businessId, schema.businesses.id))
+      .leftJoin(
+        schema.restaurantTables,
+        eq(schema.orders.tableId, schema.restaurantTables.id),
+      )
+      .where(eq(schema.orders.id, orderId))
+      .limit(1);
+
+    if (!row) return;
+
+    const context = {
+      businessName: row.businessName,
+      orderNumber: row.orderNumber,
+      tableLabel: row.tableLabel,
+      guestName: row.guestName,
+      total: new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: row.currency,
+        maximumFractionDigits: 0,
+      }).format(row.total / 100),
+    };
+
+    await queueMessage({
+      businessId: row.businessId,
+      orderId,
+      channel: "whatsapp",
+      recipient: row.guestPhone ? `91${row.guestPhone}` : null,
+      template,
+      context,
+    });
+  } catch {
+    // Messaging never blocks payment processing.
+  }
 }
 
 /** Best-effort platform error stream, surfaced in admin live monitoring. */

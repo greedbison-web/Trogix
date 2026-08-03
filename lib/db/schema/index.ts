@@ -8,6 +8,7 @@ export * from "./addons";
 export * from "./hours";
 export * from "./orders";
 export * from "./order-events";
+export * from "./messages";
 export * from "./payment-accounts";
 export * from "./payments";
 export * from "./platform";

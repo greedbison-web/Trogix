@@ -4,6 +4,7 @@ import { getUser } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/queries/business";
 import { getActiveOrders, type OrderRow } from "@/lib/queries/orders";
 import { KitchenBoard } from "./KitchenBoard";
+import { NewOrderChime } from "./NewOrderChime";
 
 export const metadata: Metadata = { title: "Kitchen" };
 export const dynamic = "force-dynamic";
@@ -35,9 +36,12 @@ export default async function KitchenPage() {
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-paper/40">
           Pass · {record.business.name}
         </p>
-        <a href="/dashboard" className="text-[13px] text-paper/50 hover:text-paper">
-          Dashboard
-        </a>
+        <div className="flex items-center gap-3">
+          <NewOrderChime orderIds={orders.map((order) => order.id)} />
+          <a href="/dashboard" className="text-[13px] text-paper/50 hover:text-paper">
+            Dashboard
+          </a>
+        </div>
       </header>
       <KitchenBoard orders={orders} />
     </div>

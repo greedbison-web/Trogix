@@ -127,3 +127,16 @@ export const webhookStatusEnum = pgEnum("webhook_status", [
 ]);
 
 export const logLevelEnum = pgEnum("log_level", ["info", "warn", "error"]);
+
+export const messageChannelEnum = pgEnum("message_channel", [
+  "whatsapp",
+  "email",
+  "browser",
+]);
+
+export const messageStatusEnum = pgEnum("message_status", [
+  "queued",
+  "sent",
+  "failed",
+  "skipped",
+]);

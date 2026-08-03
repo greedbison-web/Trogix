@@ -165,6 +165,10 @@ export async function setOrderStatus(
     toStatus: parsed.data,
   });
 
+  const { notifyGuest } = await import("@/lib/razorpay/process");
+  if (parsed.data === "ready") await notifyGuest(orderId, "order_ready");
+  if (parsed.data === "completed") await notifyGuest(orderId, "order_completed");
+
   refresh();
   return ok();
 }

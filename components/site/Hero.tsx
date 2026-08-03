@@ -36,10 +36,11 @@ export function Hero() {
               authored here rather than left to the browser, exactly as the
               spec's own mobile rule does. Flagged for review.
             */}
-            <h1 className="font-serif text-display text-balance">
-              <span className="text-accent">One system</span> runs
-              <br />
-              your entire restaurant.
+            <h1 className="font-serif text-display">
+              {/* Authored breaks: after "system" on mobile, after "runs" from sm up. */}
+              <span className="text-accent">One system</span>
+              <br className="sm:hidden" /> runs
+              <br className="hidden sm:block" /> your entire restaurant.
             </h1>
           </Reveal>
 

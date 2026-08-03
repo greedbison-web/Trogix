@@ -15,12 +15,12 @@ const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
 });
 
-const title = "Trogix — The operating system for modern restaurants";
+const title = "Trogix — One system runs your entire restaurant";
 const description =
-  "From the moment a guest sits down to the moment they come back. Menu, ordering, kitchen, payments, messaging and analytics — one system, designed for premium hospitality.";
+  "Menu, ordering, kitchen, payments and guest messaging — in one place, on your brand. The operating system for modern restaurants.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://trogix.com"),
+  metadataBase: new URL("https://trogix.co.in"),
   title: {
     default: title,
     template: "%s — Trogix",

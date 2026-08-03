@@ -4,18 +4,17 @@ const groups = [
   {
     title: "Product",
     links: [
-      { label: "Ordering", href: "#surfaces" },
-      { label: "Kitchen Display", href: "#surfaces" },
-      { label: "Payments", href: "#system" },
-      { label: "Analytics", href: "#system" },
+      { label: "One order", href: "#one-order" },
+      { label: "What you keep", href: "#what-you-keep" },
+      { label: "Saturday 8PM", href: "#saturday" },
+      { label: "Demo", href: "#demo" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "The journey", href: "#journey" },
-      { label: "The system", href: "#system" },
-      { label: "Contact", href: "mailto:hello@trogix.com" },
+      { label: "Talk to us", href: "mailto:hello@trogix.co.in" },
+      { label: "hello@trogix.co.in", href: "mailto:hello@trogix.co.in" },
     ],
   },
 ];
@@ -29,8 +28,8 @@ export function Footer() {
             <p className="font-serif text-[1.75rem] leading-none tracking-[-0.02em]">
               Trogix
             </p>
-            <p className="mt-4 max-w-[300px] text-[0.9375rem] leading-relaxed text-ink-500">
-              The operating system for modern restaurants.
+            <p className="mt-4 max-w-[300px] text-caption leading-relaxed text-ink-500">
+              One system runs your entire restaurant.
             </p>
           </div>
 
@@ -45,7 +44,7 @@ export function Footer() {
                     <li key={link.label}>
                       <a
                         href={link.href}
-                        className="text-[0.9375rem] text-ink-500 transition-colors duration-300 hover:text-ink"
+                        className="text-caption text-ink-500 transition-colors duration-300 hover:text-ink"
                       >
                         {link.label}
                       </a>
@@ -58,10 +57,10 @@ export function Footer() {
         </div>
 
         <div className="mt-16 flex flex-col gap-3 border-t border-paper-edge pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[13px] text-ink-300">
+          <p className="text-micro text-ink-300">
             © {new Date().getFullYear()} Trogix. All rights reserved.
           </p>
-          <p className="text-[13px] text-ink-300">Made for hospitality.</p>
+          <p className="text-micro text-ink-300">Made for hospitality.</p>
         </div>
       </Container>
     </footer>

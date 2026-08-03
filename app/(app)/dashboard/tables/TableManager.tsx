@@ -9,6 +9,7 @@ import {
   createTablesInBulk,
   deleteTable,
   regenerateQr,
+  regenerateManyQr,
 } from "./actions";
 
 export function TableManager({
@@ -23,6 +24,13 @@ export function TableManager({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [qrFor, setQrFor] = useState<TableRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [layout, setLayout] = useState<"tent" | "sticker" | "poster">("tent");
+
+  const selectedIds = [...selected];
+  const pdfHref = `/dashboard/tables/pdf?layout=${layout}${
+    selectedIds.length > 0 ? `&tables=${selectedIds.join(",")}` : ""
+  }`;
 
   const tableUrl = (token: string) => `${menuBaseUrl}?t=${token}`;
 
@@ -51,16 +59,62 @@ export function TableManager({
           Add many
         </button>
         {tables.length > 0 ? (
-          <a
-            href="/dashboard/tables/print"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-11 items-center rounded-full border border-paper-edge bg-paper-raised px-5 text-caption font-medium text-ink hover:border-ink-300"
-          >
-            Print all QR codes
-          </a>
+          <>
+            <label className="flex h-11 items-center gap-2 rounded-full border border-paper-edge bg-paper-raised px-4">
+              <span className="text-micro text-ink-500">Layout</span>
+              <select
+                value={layout}
+                onChange={(e) =>
+                  setLayout(e.target.value as "tent" | "sticker" | "poster")
+                }
+                aria-label="PDF layout"
+                className="bg-transparent text-caption font-medium text-ink outline-none"
+              >
+                <option value="tent">Table tents · 6 per page</option>
+                <option value="sticker">Stickers · 12 per page</option>
+                <option value="poster">Posters · 1 per page</option>
+              </select>
+            </label>
+            <a
+              href={pdfHref}
+              className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-caption font-medium text-paper"
+            >
+              Download PDF
+              {selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
+            </a>
+            <a
+              href="/dashboard/tables/print"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 items-center rounded-full border border-paper-edge bg-paper-raised px-5 text-caption font-medium text-ink hover:border-ink-300"
+            >
+              Print sheet
+            </a>
+          </>
         ) : null}
       </div>
+
+      {selected.size > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-full border border-paper-edge bg-paper-raised px-4 py-2.5">
+          <span className="text-micro font-medium text-ink">
+            {selected.size} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => run(() => regenerateManyQr(selectedIds))}
+            className="h-8 rounded-full border border-paper-edge px-3 text-micro font-medium text-ink-700 hover:border-ink-300"
+          >
+            Regenerate codes
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="ml-auto text-micro text-ink-500 hover:text-ink"
+          >
+            Clear
+          </button>
+        </div>
+      ) : null}
 
       {notice ? (
         <p role="alert" className="mt-4 text-caption text-[var(--color-state-late)]">
@@ -95,7 +149,22 @@ export function TableManager({
               className="rounded-2xl border border-paper-edge bg-paper-raised p-5"
             >
               <div className="flex items-start justify-between">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(table.id)}
+                    onChange={() =>
+                      setSelected((current) => {
+                        const next = new Set(current);
+                        if (next.has(table.id)) next.delete(table.id);
+                        else next.add(table.id);
+                        return next;
+                      })
+                    }
+                    aria-label={`Select table ${table.label}`}
+                    className="mt-1.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+                  />
+                  <div className="min-w-0">
                   <p className="font-serif text-[1.75rem] leading-none tracking-[-0.02em]">
                     {table.label}
                   </p>
@@ -103,6 +172,7 @@ export function TableManager({
                     {table.seats} {table.seats === 1 ? "seat" : "seats"}
                     {table.section ? ` · ${table.section}` : ""}
                   </p>
+                  </div>
                 </div>
                 <span className="rounded-full bg-paper-sunken px-2.5 py-1 text-[11px] font-medium capitalize text-ink-500">
                   {table.status}

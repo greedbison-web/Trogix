@@ -185,6 +185,41 @@ export async function deleteTable(formData: FormData): Promise<ActionResult> {
   return ok();
 }
 
+/** Rotates tokens for many tables at once. Old codes stop working. */
+export async function regenerateManyQr(ids: string[]): Promise<ActionResult> {
+  let business;
+  try {
+    business = await requireBusiness();
+  } catch {
+    return fail("Your session expired. Sign in again.");
+  }
+
+  if (ids.length === 0) return fail("Select at least one table.");
+
+  try {
+    const db = getDb();
+    await db.transaction(async (tx) => {
+      for (const id of ids) {
+        await tx
+          .update(schema.restaurantTables)
+          .set({ qrToken: newQrToken() })
+          .where(
+            and(
+              eq(schema.restaurantTables.id, id),
+              eq(schema.restaurantTables.businessId, business.id),
+              isNull(schema.restaurantTables.deletedAt),
+            ),
+          );
+      }
+    });
+  } catch {
+    return fail("Could not regenerate those codes.");
+  }
+
+  refresh();
+  return ok();
+}
+
 export async function regenerateQr(formData: FormData): Promise<ActionResult> {
   let business;
   try {

@@ -14,6 +14,7 @@
     "@supabase/supabase-js": "^2.111.0",
     "drizzle-orm": "^0.45.2",
     "next": "15.4.6",
+    "pdf-lib": "^1.17.1",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
     "react": "19.1.0",

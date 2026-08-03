@@ -17,9 +17,29 @@ export default async function AppLayout({
     <div className="min-h-screen bg-paper">
       <header className="border-b border-paper-edge bg-paper-raised">
         <div className="mx-auto flex h-[64px] w-full max-w-[1180px] items-center justify-between px-6">
-          <Link href="/dashboard" className="font-serif text-[1.4rem] leading-none">
-            Trogix
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="font-serif text-[1.4rem] leading-none">
+              Trogix
+            </Link>
+            <nav aria-label="Primary" className="hidden items-center gap-5 md:flex">
+              {[
+                { href: "/dashboard", label: "Overview" },
+                { href: "/dashboard/orders", label: "Orders" },
+                { href: "/dashboard/menu", label: "Menu" },
+                { href: "/dashboard/tables", label: "Tables" },
+                { href: "/dashboard/analytics", label: "Analytics" },
+                { href: "/kitchen", label: "Kitchen" },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-caption text-ink-500 transition-colors hover:text-ink"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden text-micro text-ink-500 sm:block">
               {user.email}

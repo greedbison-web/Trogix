@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "./config";
 
 /** Routes requiring a session. */
-const PROTECTED = ["/dashboard", "/onboarding"];
+const PROTECTED = ["/dashboard", "/onboarding", "/kitchen"];
 /** Routes a signed-in user should not see. */
 const AUTH_ONLY = ["/login", "/signup"];
 

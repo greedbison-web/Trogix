@@ -11,3 +11,5 @@
       behind the pass) are reserved and currently render as designed negative
       space.
 - [ ] `Sign in` links to mailto until auth exists.
+- [ ] Dashboard quick actions link to /dashboard/menu, /dashboard/tables and
+      /dashboard/orders — these routes 404 until those features ship.

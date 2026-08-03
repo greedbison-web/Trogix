@@ -92,14 +92,56 @@ export async function getTableByToken(
   return rows[0] ?? null;
 }
 
-/** Only active categories with at least one available item reach a guest. */
-export async function getPublicMenu(businessId: string): Promise<MenuCategory[]> {
+/** Local weekday and HH:MM for the restaurant, used by the scheduler. */
+function localNow(timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
+    get("weekday"),
+  );
+  return { weekday: weekdayIndex < 0 ? 0 : weekdayIndex, time: `${get("hour")}:${get("minute")}` };
+}
+
+function isScheduledNow(
+  item: { availableDays: number | null; availableFrom: string | null; availableUntil: string | null },
+  now: { weekday: number; time: string },
+) {
+  if (item.availableDays !== null && (item.availableDays & (1 << now.weekday)) === 0) {
+    return false;
+  }
+  const { availableFrom: from, availableUntil: until } = item;
+  if (!from || !until) return true;
+  // A window that wraps midnight (22:00–02:00) is open on either side.
+  return from <= until
+    ? now.time >= from && now.time <= until
+    : now.time >= from || now.time <= until;
+}
+
+/**
+ * Only active categories with at least one item that is both marked available
+ * and inside its schedule reach a guest.
+ */
+export async function getPublicMenu(
+  businessId: string,
+  timezone = "Asia/Kolkata",
+): Promise<MenuCategory[]> {
   const menu = await getMenu(businessId);
+  const now = localNow(timezone);
+
   return menu
     .filter((category) => category.isActive)
     .map((category) => ({
       ...category,
-      items: category.items.filter((item) => item.isAvailable),
+      items: category.items.filter(
+        (item) => item.isAvailable && isScheduledNow(item, now),
+      ),
     }))
     .filter((category) => category.items.length > 0);
 }

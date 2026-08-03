@@ -50,7 +50,7 @@ export default async function GuestMenuPage({
   if (!venue) notFound();
 
   const [categories, table] = await Promise.all([
-    getPublicMenu(venue.businessId),
+    getPublicMenu(venue.businessId, venue.timezone),
     getTableByToken(venue.businessId, t),
   ]);
 

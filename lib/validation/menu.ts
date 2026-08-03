@@ -47,6 +47,18 @@ export const variantSchema = z.object({
   isDefault: z.coerce.boolean().default(false),
 });
 
+export const addonSchema = z.object({
+  name: z.string().trim().min(1, "Add-on name is required.").max(40),
+  price: z
+    .string()
+    .trim()
+    .default("0")
+    .refine((v) => /^\d+(\.\d{1,2})?$/.test(v), "Enter a valid amount.")
+    .transform((v) => Math.round(Number(v) * 100)),
+});
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export const menuItemSchema = z.object({
   id: uuid.optional(),
   categoryId: uuid,
@@ -77,6 +89,21 @@ export const menuItemSchema = z.object({
       "Preparation time must be between 1 and 240 minutes.",
     ),
   variants: z.array(variantSchema).max(12, "Too many variants.").default([]),
+  addons: z.array(addonSchema).max(20, "Too many add-ons.").default([]),
+  availableFrom: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v))
+    .refine((v) => v === undefined || TIME.test(v), "Use a 24-hour time."),
+  availableUntil: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v))
+    .refine((v) => v === undefined || TIME.test(v), "Use a 24-hour time."),
+  /** Bitmask, bit 0 = Sunday. 127 or undefined means every day. */
+  availableDays: z.coerce.number().int().min(0).max(127).optional(),
 });
 
 export const reorderSchema = z.object({

@@ -10,6 +10,13 @@ export type MenuVariant = {
   isAvailable: boolean;
 };
 
+export type MenuAddon = {
+  id: string;
+  name: string;
+  price: number;
+  isAvailable: boolean;
+};
+
 export type MenuItemRow = {
   id: string;
   categoryId: string;
@@ -25,7 +32,11 @@ export type MenuItemRow = {
   spiceLevel: "none" | "mild" | "medium" | "hot";
   preparationMinutes: number | null;
   sortOrder: number;
+  availableFrom: string | null;
+  availableUntil: string | null;
+  availableDays: number | null;
   variants: MenuVariant[];
+  addons: MenuAddon[];
 };
 
 export type MenuCategory = {
@@ -42,7 +53,7 @@ export type MenuCategory = {
 export async function getMenu(businessId: string): Promise<MenuCategory[]> {
   const db = getDb();
 
-  const [categoryRows, itemRows, variantRows] = await Promise.all([
+  const [categoryRows, itemRows, variantRows, addonRows] = await Promise.all([
     db
       .select()
       .from(schema.categories)
@@ -75,7 +86,30 @@ export async function getMenu(businessId: string): Promise<MenuCategory[]> {
         ),
       )
       .orderBy(asc(schema.itemVariants.sortOrder)),
+
+    db
+      .select()
+      .from(schema.itemAddons)
+      .where(
+        and(
+          eq(schema.itemAddons.businessId, businessId),
+          isNull(schema.itemAddons.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.itemAddons.sortOrder)),
   ]);
+
+  const addonsByItem = new Map<string, MenuAddon[]>();
+  for (const addon of addonRows) {
+    const list = addonsByItem.get(addon.menuItemId) ?? [];
+    list.push({
+      id: addon.id,
+      name: addon.name,
+      price: addon.price,
+      isAvailable: addon.isAvailable,
+    });
+    addonsByItem.set(addon.menuItemId, list);
+  }
 
   const variantsByItem = new Map<string, MenuVariant[]>();
   for (const variant of variantRows) {
@@ -108,7 +142,11 @@ export async function getMenu(businessId: string): Promise<MenuCategory[]> {
       spiceLevel: item.spiceLevel,
       preparationMinutes: item.preparationMinutes,
       sortOrder: item.sortOrder,
+      availableFrom: item.availableFrom,
+      availableUntil: item.availableUntil,
+      availableDays: item.availableDays,
       variants: variantsByItem.get(item.id) ?? [],
+      addons: addonsByItem.get(item.id) ?? [],
     });
     itemsByCategory.set(item.categoryId, list);
   }

@@ -7,6 +7,9 @@ import type { ActionResult } from "./types";
 import { Drawer, Field, Toggle } from "./ui";
 
 type DraftVariant = { name: string; priceDelta: string; isDefault: boolean };
+type DraftAddon = { name: string; price: string };
+
+const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export function ItemEditor({
   item,
@@ -34,6 +37,10 @@ export function ItemEditor({
   const [imagePreview, setImagePreview] = useState<string | null>(
     item?.imageUrl ?? null,
   );
+  const [addons, setAddons] = useState<DraftAddon[]>(
+    item?.addons.map((a) => ({ name: a.name, price: (a.price / 100).toFixed(2) })) ?? [],
+  );
+  const [days, setDays] = useState<number>(item?.availableDays ?? 127);
   const [variants, setVariants] = useState<DraftVariant[]>(
     item?.variants.map((v) => ({
       name: v.name,
@@ -59,6 +66,16 @@ export function ItemEditor({
           })),
       ),
     );
+
+    formData.set(
+      "addons",
+      JSON.stringify(
+        addons
+          .filter((a) => a.name.trim() !== "")
+          .map((a) => ({ name: a.name, price: a.price === "" ? "0" : a.price })),
+      ),
+    );
+    formData.set("availableDays", String(days));
 
     startTransition(async () => {
       const result = await onSave(formData);
@@ -289,6 +306,117 @@ export function ItemEditor({
                 </li>
               ))}
             </ul>
+          ) : null}
+        </div>
+
+        {/* Add-ons */}
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-micro font-medium text-ink-700">
+              Add-ons (extra cheese, side salad…)
+            </span>
+            <button
+              type="button"
+              onClick={() => setAddons((a) => [...a, { name: "", price: "0" }])}
+              className="text-micro font-medium text-accent-deep hover:underline"
+            >
+              Add
+            </button>
+          </div>
+
+          {addons.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {addons.map((addon, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <input
+                    value={addon.name}
+                    onChange={(e) =>
+                      setAddons((list) =>
+                        list.map((a, i) => (i === index ? { ...a, name: e.target.value } : a)),
+                      )
+                    }
+                    placeholder="Extra cheese"
+                    aria-label={`Add-on ${index + 1} name`}
+                    className="h-11 flex-1 rounded-xl border border-paper-edge bg-paper-raised px-3 text-caption outline-none focus:border-accent"
+                  />
+                  <input
+                    value={addon.price}
+                    onChange={(e) =>
+                      setAddons((list) =>
+                        list.map((a, i) => (i === index ? { ...a, price: e.target.value } : a)),
+                      )
+                    }
+                    inputMode="decimal"
+                    placeholder="80"
+                    aria-label={`Add-on ${index + 1} price`}
+                    className="h-11 w-24 rounded-xl border border-paper-edge bg-paper-raised px-3 text-caption tabular-nums outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAddons((list) => list.filter((_, i) => i !== index))}
+                    aria-label={`Remove add-on ${index + 1}`}
+                    className="h-11 px-2 text-micro text-ink-300 hover:text-[var(--color-state-late)]"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+
+        {/* Availability scheduler */}
+        <div className="rounded-xl border border-paper-edge bg-paper p-4">
+          <span className="text-micro font-medium text-ink-700">
+            Availability schedule
+          </span>
+          <p className="mt-1 text-micro text-ink-500">
+            Leave empty to offer this item whenever you are open.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {DAYS.map((label, index) => {
+              const on = (days & (1 << index)) !== 0;
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={`Day ${index}`}
+                  onClick={() => setDays((d) => d ^ (1 << index))}
+                  className={`h-9 w-9 rounded-full text-micro font-medium transition-colors ${
+                    on
+                      ? "bg-ink text-paper"
+                      : "border border-paper-edge text-ink-300 hover:border-ink-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="time"
+              name="availableFrom"
+              defaultValue={item?.availableFrom ?? ""}
+              aria-label="Available from"
+              className="h-11 rounded-xl border border-paper-edge bg-paper-raised px-3 text-caption tabular-nums outline-none focus:border-accent"
+            />
+            <span className="text-micro text-ink-300">to</span>
+            <input
+              type="time"
+              name="availableUntil"
+              defaultValue={item?.availableUntil ?? ""}
+              aria-label="Available until"
+              className="h-11 rounded-xl border border-paper-edge bg-paper-raised px-3 text-caption tabular-nums outline-none focus:border-accent"
+            />
+          </div>
+          {errors.availableFrom || errors.availableUntil ? (
+            <p role="alert" className="mt-2 text-micro text-[var(--color-state-late)]">
+              {errors.availableFrom ?? errors.availableUntil}
+            </p>
           ) : null}
         </div>
 

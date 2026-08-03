@@ -212,12 +212,13 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
     return fail("Your session expired. Sign in again.");
   }
 
-  const variantsRaw = String(formData.get("variants") ?? "[]");
   let variantsParsed: unknown = [];
+  let addonsParsed: unknown = [];
   try {
-    variantsParsed = JSON.parse(variantsRaw);
+    variantsParsed = JSON.parse(String(formData.get("variants") ?? "[]"));
+    addonsParsed = JSON.parse(String(formData.get("addons") ?? "[]"));
   } catch {
-    return fail("Invalid variants.");
+    return fail("Invalid options.");
   }
 
   const parsed = menuItemSchema.safeParse({
@@ -233,6 +234,10 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
     spiceLevel: formData.get("spiceLevel") || "none",
     preparationMinutes: formData.get("preparationMinutes") ?? "",
     variants: variantsParsed,
+    addons: addonsParsed,
+    availableFrom: formData.get("availableFrom") ?? "",
+    availableUntil: formData.get("availableUntil") ?? "",
+    availableDays: formData.get("availableDays") || undefined,
   });
   if (!parsed.success) return fail("Please fix the highlighted fields.", fieldErrors(parsed.error));
 
@@ -283,6 +288,9 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
             isBestseller: values.isBestseller,
             spiceLevel: values.spiceLevel,
             preparationMinutes: values.preparationMinutes ?? null,
+            availableFrom: values.availableFrom ?? null,
+            availableUntil: values.availableUntil ?? null,
+            availableDays: values.availableDays ?? null,
             ...(imageUrl ? { imageUrl } : {}),
           })
           .where(
@@ -316,6 +324,9 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
             isBestseller: values.isBestseller,
             spiceLevel: values.spiceLevel,
             preparationMinutes: values.preparationMinutes ?? null,
+            availableFrom: values.availableFrom ?? null,
+            availableUntil: values.availableUntil ?? null,
+            availableDays: values.availableDays ?? null,
             sortOrder: nextOrder,
           })
           .returning({ id: schema.menuItems.id });
@@ -340,6 +351,28 @@ export async function saveMenuItem(formData: FormData): Promise<ActionResult> {
             name: variant.name,
             priceDelta: variant.priceDelta,
             isDefault: variant.isDefault,
+            sortOrder: index,
+          })),
+        );
+      }
+
+      // Add-ons are replaced wholesale, like variants.
+      await tx
+        .delete(schema.itemAddons)
+        .where(
+          and(
+            eq(schema.itemAddons.menuItemId, itemId!),
+            eq(schema.itemAddons.businessId, business.id),
+          ),
+        );
+
+      if (values.addons.length > 0) {
+        await tx.insert(schema.itemAddons).values(
+          values.addons.map((addon, index) => ({
+            businessId: business.id,
+            menuItemId: itemId!,
+            name: addon.name,
+            price: addon.price,
             sortOrder: index,
           })),
         );

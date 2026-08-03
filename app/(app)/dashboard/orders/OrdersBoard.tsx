@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderRow } from "@/lib/queries/orders";
 import { formatMoney, formatTime } from "@/lib/format";
-import { setOrderStatus } from "./actions";
+import { setOrderStatus, saveKitchenNote } from "./actions";
+import type { TimelineEntry } from "@/lib/queries/orders";
 
 const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
   placed: { label: "Accept", value: "accepted" },
@@ -19,11 +20,13 @@ const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
 
 export function OrdersBoard({
   orders,
+  timelines,
   currency,
   timezone,
   filter,
 }: {
   orders: OrderRow[];
+  timelines: Record<string, TimelineEntry[]>;
   currency: string;
   timezone: string;
   filter: "active" | "today" | "all";
@@ -31,6 +34,8 @@ export function OrdersBoard({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
 
   // Live: the pass refreshes itself while the tab is open.
   useEffect(() => {
@@ -137,8 +142,87 @@ export function OrdersBoard({
 
                 {order.notes ? (
                   <p className="mt-3 rounded-xl bg-paper-sunken px-3 py-2 text-micro text-ink-700">
-                    {order.notes}
+                    <span className="font-medium">Guest note:</span> {order.notes}
                   </p>
+                ) : null}
+
+                {order.kitchenNote ? (
+                  <p className="mt-2 rounded-xl bg-accent-soft px-3 py-2 text-micro text-accent-deep">
+                    <span className="font-medium">Kitchen note:</span> {order.kitchenNote}
+                  </p>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpanded((id) => (id === order.id ? null : order.id))
+                    }
+                    aria-expanded={expanded === order.id}
+                    className="text-micro font-medium text-accent-deep hover:underline"
+                  >
+                    {expanded === order.id ? "Hide timeline" : "Timeline"}
+                    {timelines[order.id]?.length
+                      ? ` (${timelines[order.id].length})`
+                      : ""}
+                  </button>
+                </div>
+
+                {expanded === order.id ? (
+                  <div className="mt-3 rounded-xl border border-paper-edge bg-paper p-4">
+                    <ol className="space-y-2">
+                      <li className="flex gap-3 text-micro">
+                        <span className="w-12 shrink-0 tabular-nums text-ink-300">
+                          {order.placedAt
+                            ? formatTime(new Date(order.placedAt), timezone)
+                            : "—"}
+                        </span>
+                        <span className="text-ink-700">Order placed</span>
+                      </li>
+                      {(timelines[order.id] ?? []).map((entry) => (
+                        <li key={entry.id} className="flex gap-3 text-micro">
+                          <span className="w-12 shrink-0 tabular-nums text-ink-300">
+                            {formatTime(new Date(entry.createdAt), timezone)}
+                          </span>
+                          <span className="text-ink-700">
+                            {entry.type === "status"
+                              ? `${entry.fromStatus} → ${entry.toStatus}`
+                              : entry.type === "kitchen_note"
+                                ? `Kitchen note: ${entry.note}`
+                                : entry.type}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-paper-edge pt-4">
+                      <input
+                        value={noteDraft[order.id] ?? order.kitchenNote ?? ""}
+                        onChange={(e) =>
+                          setNoteDraft((d) => ({ ...d, [order.id]: e.target.value }))
+                        }
+                        placeholder="Note for the kitchen"
+                        aria-label={`Kitchen note for order ${order.orderNumber}`}
+                        maxLength={280}
+                        className="h-10 min-w-[200px] flex-1 rounded-full border border-paper-edge bg-paper-raised px-4 text-micro outline-none focus:border-accent"
+                      />
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() =>
+                          run(() =>
+                            saveKitchenNote(
+                              order.id,
+                              noteDraft[order.id] ?? order.kitchenNote ?? "",
+                            ),
+                          )
+                        }
+                        className="h-10 rounded-full bg-ink px-4 text-micro font-medium text-paper disabled:opacity-60"
+                      >
+                        Save note
+                      </button>
+                    </div>
+                  </div>
                 ) : null}
 
                 {open ? (

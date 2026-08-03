@@ -7,6 +7,7 @@ export * from "./menu";
 export * from "./addons";
 export * from "./hours";
 export * from "./orders";
+export * from "./order-events";
 export * from "./payment-accounts";
 export * from "./payments";
 export * from "./platform";

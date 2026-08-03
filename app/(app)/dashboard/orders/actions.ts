@@ -29,6 +29,69 @@ function refresh() {
   revalidatePath("/dashboard");
 }
 
+/** Records a timeline entry. Never throws — the timeline is observational. */
+async function recordEvent(
+  businessId: string,
+  orderId: string,
+  entry: {
+    type: string;
+    fromStatus?: string | null;
+    toStatus?: string | null;
+    note?: string | null;
+    actor?: string | null;
+  },
+) {
+  try {
+    const db = getDb();
+    await db.insert(schema.orderEvents).values({
+      businessId,
+      orderId,
+      type: entry.type,
+      fromStatus: entry.fromStatus ?? null,
+      toStatus: entry.toStatus ?? null,
+      note: entry.note ?? null,
+      actor: entry.actor ?? null,
+    });
+  } catch {
+    // A missing timeline entry must not fail the transition it describes.
+  }
+}
+
+/** Kitchen-only note. Guests never see this. */
+export async function saveKitchenNote(
+  orderId: string,
+  note: string,
+): Promise<ActionResult> {
+  let business;
+  try {
+    business = await requireBusiness();
+  } catch {
+    return fail("Your session expired. Sign in again.");
+  }
+
+  const trimmed = note.trim().slice(0, 280);
+
+  try {
+    const db = getDb();
+    await db
+      .update(schema.orders)
+      .set({ kitchenNote: trimmed || null })
+      .where(
+        and(eq(schema.orders.id, orderId), eq(schema.orders.businessId, business.id)),
+      );
+  } catch {
+    return fail("Could not save the note.");
+  }
+
+  await recordEvent(business.id, orderId, {
+    type: "kitchen_note",
+    note: trimmed || "(cleared)",
+  });
+
+  refresh();
+  return ok();
+}
+
 export async function setOrderStatus(
   orderId: string,
   status: string,
@@ -45,6 +108,16 @@ export async function setOrderStatus(
 
   const db = getDb();
   const now = new Date();
+
+  const [previous] = await db
+    .select({ status: schema.orders.status })
+    .from(schema.orders)
+    .where(
+      and(eq(schema.orders.id, orderId), eq(schema.orders.businessId, business.id)),
+    )
+    .limit(1);
+
+  if (!previous) return fail("Order not found.");
 
   try {
     await db
@@ -85,6 +158,12 @@ export async function setOrderStatus(
   } catch {
     return fail("Could not update the order.");
   }
+
+  await recordEvent(business.id, orderId, {
+    type: "status",
+    fromStatus: previous.status,
+    toStatus: parsed.data,
+  });
 
   refresh();
   return ok();

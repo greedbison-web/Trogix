@@ -34,6 +34,9 @@ export const orders = pgTable(
     status: orderStatusEnum("status").notNull().default("draft"),
     type: orderTypeEnum("type").notNull().default("dine_in"),
 
+    /** Internal note from staff to the kitchen; guests never see it. */
+    kitchenNote: text("kitchen_note"),
+
     guestName: text("guest_name"),
     guestPhone: text("guest_phone"),
     notes: text("notes"),

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/queries/business";
-import { getOrders, type OrderRow } from "@/lib/queries/orders";
+import { getOrders, getTimelines, type OrderRow, type TimelineEntry } from "@/lib/queries/orders";
 import { OrdersBoard } from "./OrdersBoard";
 
 export const metadata: Metadata = { title: "Orders" };
@@ -24,8 +24,14 @@ export default async function OrdersPage({
     raw === "today" || raw === "all" ? raw : "active";
 
   let orders: OrderRow[] = [];
+  let timelines: Record<string, TimelineEntry[]> = {};
   try {
     orders = await getOrders(record.business.id, filter, record.business.timezone);
+    const map = await getTimelines(
+      record.business.id,
+      orders.map((order) => order.id),
+    );
+    timelines = Object.fromEntries(map);
   } catch {
     orders = [];
   }
@@ -43,6 +49,7 @@ export default async function OrdersPage({
 
       <OrdersBoard
         orders={orders}
+        timelines={timelines}
         currency={record.business.currency}
         timezone={record.business.timezone}
         filter={filter}

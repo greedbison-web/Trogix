@@ -30,6 +30,7 @@ export type OrderRow = {
   guestName: string | null;
   guestPhone: string | null;
   notes: string | null;
+  kitchenNote: string | null;
   subtotal: number;
   taxAmount: number;
   serviceChargeAmount: number;
@@ -56,6 +57,7 @@ async function hydrate(
       guestName: schema.orders.guestName,
       guestPhone: schema.orders.guestPhone,
       notes: schema.orders.notes,
+      kitchenNote: schema.orders.kitchenNote,
       subtotal: schema.orders.subtotal,
       taxAmount: schema.orders.taxAmount,
       serviceChargeAmount: schema.orders.serviceChargeAmount,
@@ -143,4 +145,79 @@ export async function getOrders(
       : eq(schema.orders.businessId, businessId),
     100,
   );
+}
+
+
+export type TimelineEntry = {
+  id: string;
+  type: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  note: string | null;
+  createdAt: Date;
+};
+
+/** Full history for one order, oldest first. */
+export async function getOrderTimeline(
+  businessId: string,
+  orderId: string,
+): Promise<TimelineEntry[]> {
+  try {
+    const db = getDb();
+    return await db
+      .select({
+        id: schema.orderEvents.id,
+        type: schema.orderEvents.type,
+        fromStatus: schema.orderEvents.fromStatus,
+        toStatus: schema.orderEvents.toStatus,
+        note: schema.orderEvents.note,
+        createdAt: schema.orderEvents.createdAt,
+      })
+      .from(schema.orderEvents)
+      .where(
+        and(
+          eq(schema.orderEvents.businessId, businessId),
+          eq(schema.orderEvents.orderId, orderId),
+        ),
+      )
+      .orderBy(schema.orderEvents.createdAt);
+  } catch {
+    return [];
+  }
+}
+
+/** Timelines for many orders in one round trip. */
+export async function getTimelines(businessId: string, orderIds: string[]) {
+  if (orderIds.length === 0) return new Map<string, TimelineEntry[]>();
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({
+        id: schema.orderEvents.id,
+        orderId: schema.orderEvents.orderId,
+        type: schema.orderEvents.type,
+        fromStatus: schema.orderEvents.fromStatus,
+        toStatus: schema.orderEvents.toStatus,
+        note: schema.orderEvents.note,
+        createdAt: schema.orderEvents.createdAt,
+      })
+      .from(schema.orderEvents)
+      .where(
+        and(
+          eq(schema.orderEvents.businessId, businessId),
+          inArray(schema.orderEvents.orderId, orderIds),
+        ),
+      )
+      .orderBy(schema.orderEvents.createdAt);
+
+    const byOrder = new Map<string, TimelineEntry[]>();
+    for (const row of rows) {
+      const list = byOrder.get(row.orderId) ?? [];
+      list.push(row);
+      byOrder.set(row.orderId, list);
+    }
+    return byOrder;
+  } catch {
+    return new Map<string, TimelineEntry[]>();
+  }
 }

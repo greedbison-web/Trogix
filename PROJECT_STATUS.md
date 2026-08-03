@@ -123,13 +123,14 @@ email, target, metadata and IP. Auditing never blocks the action it describes.
 
 ## Database
 
-22 tables. `business_id` on every tenant-owned table; RLS across all of them
+26 tables. `business_id` on every tenant-owned table; RLS across all of them
 keyed to `is_business_member()`. Platform tables have RLS enabled with **no**
 `authenticated` policy, so a restaurant session can never read them.
 
 Tenant: `users`, `businesses`, `business_settings`, `staff_members`,
 `restaurant_tables`, `categories`, `menu_items`, `item_variants`, `orders`,
-`order_items`, `payments`, `receipts`, `payment_accounts`
+`order_items`, `order_events`, `payments`, `receipts`, `payment_accounts`,
+`operating_hours`, `item_addons`, `outbound_messages`
 
 Platform: `platform_admins`, `admin_audit_logs`, `impersonation_sessions`,
 `webhook_events`, `qr_scans`, `error_logs`, `platform_notifications`,
@@ -190,8 +191,16 @@ select id, 'owner', 'active' from users where email = 'you@trogix.co.in';
 
 Against a real PostgreSQL 16 instance, not mocks:
 
-- All five migrations apply clean from scratch — 22 tables, RLS on all 9
+- All eight migrations apply clean from scratch — 26 tables, RLS on all 9
   platform tables, 11 settings seeded
+- Availability scheduler: 10/10 assertions pass, including midnight-wrapping
+  windows and weekday masks
+- Peak hours, repeat customers and table utilisation return correct figures on
+  seeded orders
+- Fraud signals fire correctly on seeded data (5 failed payments, 3 of 3
+  cancellations)
+- Health endpoint, six security headers and the 404 boundary verified on a
+  running server
 - Admin queries return correct figures on seeded data (overview, search,
   filters, payment monitoring, analytics, live feed, subscriptions)
 - Permission matrix: 11/11 assertions pass — readonly cannot delete/suspend/

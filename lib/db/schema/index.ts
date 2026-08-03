@@ -4,6 +4,8 @@ export * from "./businesses";
 export * from "./staff";
 export * from "./tables";
 export * from "./menu";
+export * from "./addons";
+export * from "./hours";
 export * from "./orders";
 export * from "./payment-accounts";
 export * from "./payments";

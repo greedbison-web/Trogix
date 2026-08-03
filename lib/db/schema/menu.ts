@@ -60,6 +60,11 @@ export const menuItems = pgTable(
     /** Free-form allergen tags, e.g. {"nuts","dairy"}. */
     allergens: text("allergens").array(),
     preparationMinutes: integer("preparation_minutes"),
+    /** Optional daily availability window, HH:MM in the business timezone. */
+    availableFrom: text("available_from"),
+    availableUntil: text("available_until"),
+    /** Bitmask of weekdays the item is offered; null means every day. */
+    availableDays: integer("available_days"),
     sortOrder: integer("sort_order").notNull().default(0),
 
     ...timestamps,

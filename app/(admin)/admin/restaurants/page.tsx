@@ -7,10 +7,12 @@ export const metadata = { title: "Restaurants" };
 
 const FILTERS: { value: RestaurantFilter; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "pending_review", label: "Pending review" },
   { value: "active", label: "Active" },
   { value: "trial", label: "Trial" },
   { value: "onboarding", label: "Onboarding" },
   { value: "suspended", label: "Suspended" },
+  { value: "rejected", label: "Rejected" },
 ];
 
 export default async function RestaurantsPage({

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRestaurantDetail } from "@/lib/queries/admin";
 import { requireAdmin, can } from "@/lib/admin/auth";
-import { formatMoney, formatRelativeDay } from "@/lib/format";
+import { formatMoney, formatDate, formatTime, formatRelativeDay } from "@/lib/format";
 import { PageHeader, Panel, TableShell, Pill, EmptyRow, StatGrid } from "../../ui";
 import { RestaurantControls } from "./RestaurantControls";
 
@@ -24,7 +24,8 @@ export default async function RestaurantDetailPage({
   }
   if (!detail) notFound();
 
-  const { business, settings, account, stats, recentOrders, activity, staff } = detail;
+  const { business, settings, account, stats, recentOrders, activity, staff, owner } =
+    detail;
   const tz = business.timezone;
 
   return (
@@ -143,6 +144,67 @@ export default async function RestaurantDetailPage({
                 canImpersonate={can(admin.role, "impersonate")}
               />
             </div>
+          </Panel>
+
+          <Panel title="Account verification">
+            <dl className="divide-y divide-paper-edge px-5">
+              <Row
+                label="Email verified"
+                value={owner?.emailVerifiedAt ? "Yes" : "No"}
+              />
+              <Row
+                label="Phone verified"
+                value={owner?.phoneVerifiedAt ? "Yes" : "No"}
+              />
+              <Row label="Email" value={owner?.email ?? "—"} />
+              <Row
+                label="Phone"
+                value={owner?.phone ? `+91 ${owner.phone}` : "—"}
+              />
+              <Row
+                label="Verified at"
+                value={
+                  owner?.emailVerifiedAt
+                    ? `${formatDate(new Date(owner.emailVerifiedAt), tz)}, ${formatTime(
+                        new Date(owner.emailVerifiedAt),
+                        tz,
+                      )}`
+                    : "Not verified"
+                }
+              />
+              <Row label="Verification IP" value={owner?.verifiedIp ?? "—"} />
+              <Row
+                label="Registered"
+                value={
+                  owner?.registeredAt
+                    ? formatDate(new Date(owner.registeredAt), tz)
+                    : "—"
+                }
+              />
+            </dl>
+          </Panel>
+
+          <Panel title="Approval review">
+            <dl className="divide-y divide-paper-edge px-5">
+              <Row
+                label="Submitted"
+                value={
+                  settings?.submittedForReviewAt
+                    ? formatRelativeDay(new Date(settings.submittedForReviewAt), tz)
+                    : "—"
+                }
+              />
+              <Row
+                label="Reviewed"
+                value={
+                  settings?.reviewedAt
+                    ? formatRelativeDay(new Date(settings.reviewedAt), tz)
+                    : "Pending"
+                }
+              />
+              <Row label="Reviewer" value={settings?.reviewedByEmail ?? "—"} />
+              <Row label="Note" value={settings?.reviewNote ?? "—"} />
+            </dl>
           </Panel>
 
           <Panel title="Profile">

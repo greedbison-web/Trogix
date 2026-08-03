@@ -97,6 +97,14 @@ export const businessSettings = pgTable(
     planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
     couponCode: text("coupon_code"),
 
+    // Approval review
+    submittedForReviewAt: timestamp("submitted_for_review_at", {
+      withTimezone: true,
+    }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedByEmail: text("reviewed_by_email"),
+    reviewNote: text("review_note"),
+
     ...timestamps,
   },
   (t) => [uniqueIndex("business_settings_business_id_key").on(t.businessId)],

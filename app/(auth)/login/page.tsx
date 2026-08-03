@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: "Sign in" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; verified?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, verified } = await searchParams;
 
   return (
     <>
@@ -19,6 +19,12 @@ export default async function LoginPage({
       <p className="mt-3 text-caption text-ink-500">
         Manage your menu, orders and service.
       </p>
+
+      {verified ? (
+        <p className="mt-5 text-caption text-ink-500">
+          Your account is verified. Sign in to set up your restaurant.
+        </p>
+      ) : null}
 
       {error ? (
         <p role="alert" className="mt-5 text-caption text-[var(--color-state-late)]">

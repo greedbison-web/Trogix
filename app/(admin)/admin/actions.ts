@@ -27,7 +27,13 @@ function refreshAdmin(path?: string) {
 
 export async function setBusinessStatus(
   businessId: string,
-  status: "active" | "suspended" | "closed" | "onboarding",
+  status:
+    | "active"
+    | "pending_review"
+    | "rejected"
+    | "suspended"
+    | "closed"
+    | "onboarding",
 ): Promise<AdminResult> {
   let admin;
   try {
@@ -51,6 +57,71 @@ export async function setBusinessStatus(
     targetId: businessId,
     businessId,
     metadata: { status },
+  });
+
+  refreshAdmin(`/admin/restaurants/${businessId}`);
+  return ok();
+}
+
+/**
+ * Approval decision on a restaurant awaiting review.
+ *
+ * Approving is what makes a restaurant reachable by guests, so it is gated on
+ * the same capability as suspension and always leaves an audit trail naming
+ * the admin who decided.
+ */
+export async function reviewBusiness(
+  businessId: string,
+  decision: "approve" | "reject",
+  note: string,
+): Promise<AdminResult> {
+  let admin;
+  try {
+    admin = await requireAdminAction("restaurants.suspend");
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Not authorised.");
+  }
+
+  const trimmed = note.trim();
+  if (decision === "reject" && trimmed.length < 8) {
+    return fail("Give the owner a reason of at least 8 characters.");
+  }
+
+  try {
+    const db = getDb();
+    const [owner] = await db
+      .select({
+        emailVerifiedAt: schema.users.emailVerifiedAt,
+        phoneVerifiedAt: schema.users.phoneVerifiedAt,
+      })
+      .from(schema.users)
+      .innerJoin(schema.businesses, eq(schema.businesses.ownerId, schema.users.id))
+      .where(eq(schema.businesses.id, businessId))
+      .limit(1);
+
+    if (!owner) return fail("Restaurant not found.");
+    if (decision === "approve" && !(owner.emailVerifiedAt && owner.phoneVerifiedAt)) {
+      return fail("The owner has not verified their email and phone yet.");
+    }
+
+    await db
+      .update(schema.businessSettings)
+      .set({
+        businessStatus: decision === "approve" ? "active" : "rejected",
+        reviewedAt: new Date(),
+        reviewedByEmail: admin.email,
+        reviewNote: trimmed || null,
+      })
+      .where(eq(schema.businessSettings.businessId, businessId));
+  } catch {
+    return fail("Could not record the decision.");
+  }
+
+  await audit(admin, `restaurant.${decision}`, {
+    targetType: "business",
+    targetId: businessId,
+    businessId,
+    metadata: { decision, note: trimmed || null },
   });
 
   refreshAdmin(`/admin/restaurants/${businessId}`);

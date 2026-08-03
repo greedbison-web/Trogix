@@ -89,6 +89,8 @@ const TONES: Record<string, string> = {
   processed: "bg-accent-soft text-accent-deep",
   trial: "bg-paper-sunken text-ink-700",
   onboarding: "bg-paper-sunken text-ink-500",
+  pending_review: "bg-[#EFE7D6] text-[#7a6428]",
+  "pending review": "bg-[#EFE7D6] text-[#7a6428]",
   pending: "bg-paper-sunken text-ink-500",
   received: "bg-paper-sunken text-ink-500",
   suspended: "bg-[#F5E2D8] text-[var(--color-state-late)]",

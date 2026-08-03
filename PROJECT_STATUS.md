@@ -26,7 +26,32 @@ explicit request.
 
 ### Authentication
 Supabase Auth — email/password and Google OAuth. Session refresh in middleware,
-protected route groups, sign-out route.
+protected route groups, sign-out route. Signup collects owner name, email,
+phone and password; email and phone are both unique.
+
+### Account verification
+Email OTP proving both the email and the registered phone before an account can
+onboard.
+
+- 6-digit code from `randomInt`, stored only as a keyed HMAC (never plain text,
+  never a bare digest a million hashes would reverse), bound to the account id
+- 5-minute expiry, 5 wrong attempts before the code is destroyed, 60-second
+  resend cooldown, 5 resends before generation is blocked for an hour
+- Per-IP ceilings in Postgres — 10 code requests and 30 attempts per 15
+  minutes, 5 signups per hour — so a serverless fleet shares one allowance
+- Resend is the only email provider; HTML and plain-text templates
+- Unverified accounts are redirected to `/verify` from every authenticated
+  surface, re-checked server side in the onboarding action rather than trusted
+  from the page
+
+### Business approval
+Onboarding files a restaurant as `pending_review` rather than switching it on.
+A platform admin approves or rejects it from the restaurant detail page; the
+decision, the reviewer and the reason are recorded. Guests get nothing from a
+restaurant that is not `active` — the menu link behaves as if it does not
+exist. Approval is refused while the owner is unverified.
+
+Signup → email OTP → onboarding → pending review → admin approval → active.
 
 ### Business onboarding
 Four steps (Business, Owner, Location, Brand) with Zod validation, logo upload,
@@ -123,14 +148,16 @@ email, target, metadata and IP. Auditing never blocks the action it describes.
 
 ## Database
 
-26 tables. `business_id` on every tenant-owned table; RLS across all of them
+28 tables. `business_id` on every tenant-owned table; RLS across all of them
 keyed to `is_business_member()`. Platform tables have RLS enabled with **no**
 `authenticated` policy, so a restaurant session can never read them.
 
 Tenant: `users`, `businesses`, `business_settings`, `staff_members`,
 `restaurant_tables`, `categories`, `menu_items`, `item_variants`, `orders`,
 `order_items`, `order_events`, `payments`, `receipts`, `payment_accounts`,
-`operating_hours`, `item_addons`, `outbound_messages`
+`operating_hours`, `item_addons`, `outbound_messages`,
+`verification_challenges`, `rate_limits` (server-only, no `authenticated`
+policy)
 
 Platform: `platform_admins`, `admin_audit_logs`, `impersonation_sessions`,
 `webhook_events`, `qr_scans`, `error_logs`, `platform_notifications`,
@@ -191,8 +218,12 @@ select id, 'owner', 'active' from users where email = 'you@trogix.co.in';
 
 Against a real PostgreSQL 16 instance, not mocks:
 
-- All eight migrations apply clean from scratch — 26 tables, RLS on all 9
-  platform tables, 11 settings seeded
+- All ten migrations apply clean from scratch — 28 tables, RLS on all 11
+  server-only tables, 11 settings seeded
+- Account verification: 74/74 assertions pass — generation, hashing, 5-minute
+  expiry, wrong-code counting and invalidation at the ceiling, replay refusal,
+  resend cooldown and ceiling with the temporary block, per-IP rate limits,
+  duplicate email and phone rejection, and both email templates
 - Availability scheduler: 10/10 assertions pass, including midnight-wrapping
   windows and weekday masks
 - Peak hours, repeat customers and table utilisation return correct figures on

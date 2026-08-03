@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  reviewBusiness,
   setBusinessStatus,
   deleteBusiness,
   setSubscription,
@@ -39,6 +40,8 @@ export function RestaurantControls({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [impersonating, setImpersonating] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
 
   function run(fn: () => Promise<{ ok: boolean; message: string | null }>) {
     startTransition(async () => {
@@ -54,6 +57,59 @@ export function RestaurantControls({
         <p role="alert" className="text-caption text-[var(--color-state-late)]">
           {notice}
         </p>
+      ) : null}
+
+      {status === "pending_review" && canSuspend ? (
+        <div className="rounded-xl border border-paper-edge bg-paper p-4">
+          <p className="text-micro font-medium text-ink-700">Awaiting review</p>
+          <p className="mt-1.5 text-micro text-ink-500">
+            Approving publishes the guest menu. Until then the menu link returns
+            nothing.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => reviewBusiness(businessId, "approve", ""))}
+              className="h-10 rounded-full bg-ink px-4 text-micro font-medium text-paper disabled:opacity-60"
+            >
+              Approve restaurant
+            </button>
+            <button
+              type="button"
+              onClick={() => setRejecting((v) => !v)}
+              className="h-10 rounded-full border border-paper-edge px-4 text-micro font-medium text-[var(--color-state-late)] hover:border-ink-300"
+            >
+              Reject
+            </button>
+          </div>
+
+          {rejecting ? (
+            <div className="mt-3">
+              <label className="block">
+                <span className="text-micro font-medium text-ink-700">
+                  Reason (recorded and shown to the owner)
+                </span>
+                <input
+                  value={rejectNote}
+                  onChange={(e) => setRejectNote(e.target.value)}
+                  placeholder="FSSAI licence number does not match the business name"
+                  className="mt-2 h-11 w-full rounded-xl border border-paper-edge bg-paper-raised px-3 text-caption outline-none focus:border-accent"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={pending || rejectNote.trim().length < 8}
+                onClick={() =>
+                  run(() => reviewBusiness(businessId, "reject", rejectNote))
+                }
+                className="mt-3 h-10 rounded-full bg-[var(--color-state-late)] px-4 text-micro font-medium text-white disabled:opacity-40"
+              >
+                Confirm rejection
+              </button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

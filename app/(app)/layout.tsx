@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getUser } from "@/lib/supabase/server";
+import { requireVerifiedUser } from "@/lib/verification/guard";
 import { signOut } from "@/app/(auth)/actions";
 import { getActiveBusiness } from "@/lib/queries/business";
 import { getNoticesForBusiness } from "@/lib/queries/notifications";
@@ -14,8 +13,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getUser();
-  if (!user) redirect("/login");
+  const user = await requireVerifiedUser();
 
   const [record, impersonation] = await Promise.all([
     getActiveBusiness(user.id),
@@ -23,6 +21,7 @@ export default async function AppLayout({
   ]);
   const notices = record ? await getNoticesForBusiness(record.business.id) : [];
   const banner = notices.find((n) => n.isMaintenanceBanner);
+  const reviewStatus = record?.settings?.businessStatus ?? null;
   const messages = notices.filter((n) => !n.isMaintenanceBanner);
 
   return (
@@ -92,6 +91,30 @@ export default async function AppLayout({
         </div>
       </header>
       <main className="mx-auto w-full max-w-[1180px] px-6 py-12">
+        {reviewStatus === "pending_review" ? (
+          <div className="mb-8 rounded-2xl border border-paper-edge bg-paper-raised px-5 py-4">
+            <p className="text-caption font-medium text-ink">
+              Your restaurant is awaiting approval
+            </p>
+            <p className="mt-1 text-caption text-ink-500">
+              Build your menu and tables now — the guest menu link goes live as
+              soon as the Trogix team approves your account.
+            </p>
+          </div>
+        ) : null}
+
+        {reviewStatus === "rejected" ? (
+          <div className="mb-8 rounded-2xl border border-[var(--color-state-late)]/40 bg-[#F9EDE6] px-5 py-4">
+            <p className="text-caption font-medium text-ink">
+              Your application was not approved
+            </p>
+            <p className="mt-1 text-caption text-ink-500">
+              {record?.settings?.reviewNote ??
+                "Contact support@trogix.co.in to resolve this."}
+            </p>
+          </div>
+        ) : null}
+
         {messages.length > 0 ? (
           <ul className="mb-8 space-y-3">
             {messages.map((notice) => (

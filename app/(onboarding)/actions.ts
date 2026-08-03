@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db/errors";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { businessSchema, slugify } from "@/lib/validation/business";
+import { isVerified } from "@/lib/verification/service";
 import type { OnboardingState } from "./state";
 
 const LOGO_BUCKET = "business-logos";
@@ -75,6 +77,10 @@ export async function createBusiness(
 ): Promise<OnboardingState> {
   const user = await getUser();
   if (!user) redirect("/login?next=/onboarding");
+
+  // Re-checked here rather than trusting the layout: a business must never
+  // enter approval review on contact details nobody proved.
+  if (!(await isVerified(user.id))) redirect("/verify");
 
   const parsed = businessSchema.safeParse({
     name: formData.get("name"),
@@ -173,7 +179,8 @@ export async function createBusiness(
         gstNumber: values.gst ?? null,
         contactEmail: user.email ?? null,
         contactPhone: values.phone,
-        businessStatus: "active",
+        businessStatus: "pending_review",
+        submittedForReviewAt: new Date(),
       });
 
       await tx.insert(schema.staffMembers).values({
@@ -187,8 +194,7 @@ export async function createBusiness(
       });
     });
   } catch (error) {
-    const duplicate =
-      error instanceof Error && /duplicate key|unique/i.test(error.message);
+    const duplicate = isUniqueViolation(error);
     return {
       errors: duplicate ? { slug: "That link is already taken." } : {},
       message: duplicate

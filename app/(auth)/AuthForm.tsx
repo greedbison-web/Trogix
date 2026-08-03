@@ -15,6 +15,7 @@ export function AuthForm({
 }) {
   const action = mode === "signin" ? signIn : signUp;
   const [state, formAction] = useActionState(action, initial);
+  const fields = state.fields ?? {};
 
   return (
     <div className="space-y-5">
@@ -32,19 +33,46 @@ export function AuthForm({
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="next" value={next} />
 
+        {mode === "signup" ? (
+          <Field
+            label="Owner name"
+            name="ownerName"
+            type="text"
+            autoComplete="name"
+            placeholder="Ananya Rao"
+            error={fields.ownerName}
+          />
+        ) : null}
+
         <Field
           label="Email"
           name="email"
           type="email"
           autoComplete="email"
           placeholder="you@restaurant.com"
+          error={fields.email}
         />
+
+        {mode === "signup" ? (
+          <Field
+            label="Phone number"
+            name="phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            placeholder="9876543210"
+            error={fields.phone}
+            hint="Indian mobile number. Verified during signup."
+          />
+        ) : null}
+
         <Field
           label="Password"
           name="password"
           type="password"
           autoComplete={mode === "signin" ? "current-password" : "new-password"}
           placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+          error={fields.password}
         />
 
         {state.error ? (
@@ -65,12 +93,18 @@ function Field({
   type,
   autoComplete,
   placeholder,
+  inputMode,
+  error,
+  hint,
 }: {
   label: string;
   name: string;
   type: string;
   autoComplete: string;
   placeholder: string;
+  inputMode?: "numeric";
+  error?: string;
+  hint?: string;
 }) {
   return (
     <label className="block">
@@ -79,10 +113,21 @@ function Field({
         name={name}
         type={type}
         required
+        inputMode={inputMode}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        className="mt-2 h-12 w-full rounded-xl border border-paper-edge bg-paper-raised px-4 text-body text-ink outline-none transition-colors duration-200 placeholder:text-ink-300 focus:border-accent"
+        aria-invalid={error ? true : undefined}
+        className={`mt-2 h-12 w-full rounded-xl border bg-paper-raised px-4 text-body text-ink outline-none transition-colors duration-200 placeholder:text-ink-300 focus:border-accent ${
+          error ? "border-[var(--color-state-late)]" : "border-paper-edge"
+        }`}
       />
+      {error ? (
+        <span className="mt-1.5 block text-micro text-[var(--color-state-late)]">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="mt-1.5 block text-micro text-ink-300">{hint}</span>
+      ) : null}
     </label>
   );
 }

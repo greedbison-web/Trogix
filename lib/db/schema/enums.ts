@@ -8,7 +8,9 @@ export const businessTypeEnum = pgEnum("business_type", [
 
 export const businessStatusEnum = pgEnum("business_status", [
   "onboarding",
+  "pending_review",
   "active",
+  "rejected",
   "suspended",
   "closed",
 ]);

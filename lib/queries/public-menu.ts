@@ -42,6 +42,10 @@ export async function getVenue(slug: string): Promise<PublicVenue | null> {
   const row = rows[0];
   if (!row) return null;
 
+  // Guests only ever reach an approved restaurant. One awaiting review, or
+  // suspended, is indistinguishable from one that does not exist.
+  if (row.settings?.businessStatus !== "active") return null;
+
   const [account] = await db
     .select({ status: schema.paymentAccounts.status })
     .from(schema.paymentAccounts)

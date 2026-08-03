@@ -104,7 +104,14 @@ export async function getPlatformOverview() {
 
 /* -------------------------------------------------- Restaurant management */
 
-export type RestaurantFilter = "all" | "active" | "trial" | "suspended" | "onboarding";
+export type RestaurantFilter =
+  | "all"
+  | "active"
+  | "trial"
+  | "pending_review"
+  | "rejected"
+  | "suspended"
+  | "onboarding";
 
 export async function listRestaurants(options: {
   query?: string;
@@ -207,7 +214,7 @@ export async function getRestaurantDetail(businessId: string) {
 
   if (!record) return null;
 
-  const [stats, recentOrders, activity, staff] = await Promise.all([
+  const [stats, recentOrders, activity, staff, owner] = await Promise.all([
     db
       .select({
         orders: sql<number>`count(*)::int`,
@@ -260,6 +267,21 @@ export async function getRestaurantDetail(businessId: string) {
           isNull(schema.staffMembers.deletedAt),
         ),
       ),
+
+    db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        fullName: schema.users.fullName,
+        phone: schema.users.phone,
+        emailVerifiedAt: schema.users.emailVerifiedAt,
+        phoneVerifiedAt: schema.users.phoneVerifiedAt,
+        verifiedIp: schema.users.verifiedIp,
+        registeredAt: schema.users.createdAt,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, record.business.ownerId))
+      .limit(1),
   ]);
 
   return {
@@ -268,6 +290,7 @@ export async function getRestaurantDetail(businessId: string) {
     recentOrders,
     activity,
     staff,
+    owner: owner[0] ?? null,
   };
 }
 

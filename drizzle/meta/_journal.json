@@ -50,6 +50,13 @@
       "when": 1785746329147,
       "tag": "0007_messaging",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785761750594,
+      "tag": "0008_account_verification",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,9 @@ export const metadata: Metadata = { title: "Analytics" };
 export const dynamic = "force-dynamic";
 
 const EMPTY: Analytics = {
+  peakHours: [],
+  repeat: { guests: 0, repeatGuests: 0, totalVisits: 0 },
+  tableUse: [],
   today: { orders: 0, revenue: 0 },
   period: { orders: 0, revenue: 0, average: 0 },
   series: [],
@@ -33,16 +36,38 @@ export default async function AnalyticsPage() {
 
   const currency = record.business.currency;
   const peak = Math.max(1, ...data.series.map((d) => d.revenue));
+  const peakHourMax = Math.max(1, ...data.peakHours.map((h) => h.orders));
+  const tableMax = Math.max(1, ...data.tableUse.map((t) => t.orders));
+  const repeatPct =
+    data.repeat.guests > 0
+      ? Math.round((data.repeat.repeatGuests / data.repeat.guests) * 100)
+      : null;
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="font-serif text-[2.25rem] leading-none tracking-[-0.02em]">
-          Analytics
-        </h1>
-        <p className="mt-2 text-caption text-ink-500">
-          Completed orders over the last {data.days} days.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[2.25rem] leading-none tracking-[-0.02em]">
+            Analytics
+          </h1>
+          <p className="mt-2 text-caption text-ink-500">
+            Completed orders over the last {data.days} days.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <a
+            href="/dashboard/analytics/export?format=csv"
+            className="inline-flex h-11 items-center rounded-full border border-paper-edge bg-paper-raised px-5 text-caption font-medium text-ink hover:border-ink-300"
+          >
+            Export CSV
+          </a>
+          <a
+            href="/dashboard/analytics/export?format=pdf"
+            className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-caption font-medium text-paper"
+          >
+            Export PDF
+          </a>
+        </div>
       </header>
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-paper-edge bg-paper-edge lg:grid-cols-4">
@@ -89,6 +114,83 @@ export default async function AnalyticsPage() {
           </ul>
         </section>
       )}
+
+      <section className="rounded-2xl border border-paper-edge bg-paper-raised p-6">
+        <h2 className="text-micro font-medium uppercase tracking-[0.16em] text-ink-300">
+          Peak hours
+        </h2>
+        {data.peakHours.length === 0 ? (
+          <p className="mt-4 text-caption text-ink-500">No completed orders yet.</p>
+        ) : (
+          <div className="mt-6 overflow-x-auto">
+            <ul className="flex h-32 min-w-[560px] items-end gap-1">
+              {Array.from({ length: 24 }, (_, hour) => {
+                const row = data.peakHours.find((h) => h.hour === hour);
+                const orders = row?.orders ?? 0;
+                return (
+                  <li key={hour} className="flex flex-1 flex-col items-center gap-2">
+                    <span
+                      className={`w-full rounded-t ${orders > 0 ? "bg-accent/80" : "bg-paper-sunken"}`}
+                      style={{ height: `${Math.max(3, (orders / peakHourMax) * 100)}px` }}
+                      title={`${String(hour).padStart(2, "0")}:00 — ${orders} orders`}
+                    />
+                    <span className="text-[10px] tabular-nums text-ink-300">
+                      {String(hour).padStart(2, "0")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-2xl border border-paper-edge bg-paper-raised p-6">
+          <h2 className="text-micro font-medium uppercase tracking-[0.16em] text-ink-300">
+            Repeat customers
+          </h2>
+          <p className="mt-4 font-serif text-[2.5rem] leading-none tabular-nums">
+            {repeatPct === null ? "—" : `${repeatPct}%`}
+          </p>
+          <p className="mt-2 text-caption text-ink-500">
+            {data.repeat.repeatGuests} of {data.repeat.guests} identified guests
+            have ordered more than once.
+          </p>
+          <p className="mt-1 text-micro text-ink-300">
+            Counted by mobile number, so guests who order anonymously are not
+            included.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-paper-edge bg-paper-raised p-6">
+          <h2 className="text-micro font-medium uppercase tracking-[0.16em] text-ink-300">
+            Table utilisation
+          </h2>
+          {data.tableUse.length === 0 ? (
+            <p className="mt-4 text-caption text-ink-500">No tables yet.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-paper-edge">
+              {data.tableUse.slice(0, 8).map((table) => (
+                <li key={table.label} className="flex items-center gap-3 py-2.5">
+                  <span className="w-12 shrink-0 text-caption text-ink">
+                    {table.label}
+                  </span>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-paper-sunken">
+                    <span
+                      className="block h-full rounded-full bg-accent"
+                      style={{ width: `${(table.orders / tableMax) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-20 shrink-0 text-right text-micro tabular-nums text-ink-500">
+                    {table.orders} orders
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-paper-edge bg-paper-raised p-6">

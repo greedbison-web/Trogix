@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 
 export type Analytics = Awaited<ReturnType<typeof getAnalytics>>;
@@ -71,7 +71,60 @@ export async function getAnalytics(businessId: string, timezone: string, days = 
       .groupBy(schema.orders.type),
   ]);
 
+  const [peakHours, repeat, tableUse] = await Promise.all([
+    db
+      .select({
+        hour: sql<number>`extract(hour from (${schema.orders.completedAt} AT TIME ZONE ${timezone}))::int`,
+        orders: sql<number>`count(*)::int`,
+        revenue: sql<number>`coalesce(sum(${schema.orders.total}), 0)::int`,
+      })
+      .from(schema.orders)
+      .where(and(completed, gte(schema.orders.completedAt, since as never)))
+      .groupBy(sql`1`)
+      .orderBy(sql`1`),
+
+    db
+      .select({
+        guests: sql<number>`count(*)::int`,
+        repeatGuests: sql<number>`count(*) filter (where visits > 1)::int`,
+        totalVisits: sql<number>`coalesce(sum(visits), 0)::int`,
+      })
+      .from(
+        sql`(
+          select guest_phone, count(*) as visits
+          from ${schema.orders}
+          where business_id = ${businessId}
+            and status = 'completed'
+            and guest_phone is not null
+          group by guest_phone
+        ) g`,
+      ),
+
+    db
+      .select({
+        label: schema.restaurantTables.label,
+        orders: sql<number>`count(o.id)::int`,
+        revenue: sql<number>`coalesce(sum(o.total), 0)::int`,
+      })
+      .from(schema.restaurantTables)
+      .leftJoin(
+        sql`${schema.orders} o`,
+        sql`o.table_id = ${schema.restaurantTables.id} and o.status = 'completed' and o.completed_at >= ${since}`,
+      )
+      .where(
+        and(
+          eq(schema.restaurantTables.businessId, businessId),
+          isNull(schema.restaurantTables.deletedAt),
+        ),
+      )
+      .groupBy(schema.restaurantTables.id, schema.restaurantTables.label)
+      .orderBy(desc(sql`count(o.id)`)),
+  ]);
+
   return {
+    peakHours,
+    repeat: repeat[0] ?? { guests: 0, repeatGuests: 0, totalVisits: 0 },
+    tableUse,
     today: today[0] ?? { orders: 0, revenue: 0 },
     period: period[0] ?? { orders: 0, revenue: 0, average: 0 },
     series,

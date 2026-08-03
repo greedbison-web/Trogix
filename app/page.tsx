@@ -1,25 +1,21 @@
 import { Nav } from "@/components/site/Nav";
 import { Hero } from "@/components/site/Hero";
-import { Manifesto } from "@/components/site/Manifesto";
-import { Journey } from "@/components/site/Journey";
-import { Surfaces } from "@/components/site/Surfaces";
-import { Principles } from "@/components/site/Principles";
-import { OneSystem } from "@/components/site/OneSystem";
-import { Closing } from "@/components/site/Closing";
+import { OneOrder } from "@/components/site/OneOrder";
+import { WhatYouKeep } from "@/components/site/WhatYouKeep";
+import { SaturdayEight } from "@/components/site/SaturdayEight";
+import { InteractiveDemo } from "@/components/site/InteractiveDemo";
+import { FinalCta } from "@/components/site/FinalCta";
 import { Footer } from "@/components/site/Footer";
 
 /**
- * Homepage architecture
- * ---------------------
- * The order is an argument, not a layout:
+ * Homepage — built to the approved design review, section order fixed.
  *
- *   Hero        desire, before explanation
- *   Manifesto   a pause, and a belief
- *   Journey     what Trogix actually is — one evening, end to end
- *   Surfaces    proof of craft, at size
- *   Principles  what we commit to
- *   System      all of it is one product
- *   Closing     the invitation, in ink
+ *   1  Hero              paper
+ *   2  One Order         paper-sunken   ← 300vh pinned set piece
+ *   3  What You Keep     paper          ← zero accent, no product
+ *   4  Saturday 8PM      INK            ← the single inversion
+ *   5  Interactive Demo  paper-sunken   ← real product, user-triggered only
+ *   6  Final CTA         paper          ← closes calm, not loud
  */
 export default function HomePage() {
   return (
@@ -27,12 +23,11 @@ export default function HomePage() {
       <Nav />
       <main id="main">
         <Hero />
-        <Manifesto />
-        <Journey />
-        <Surfaces />
-        <Principles />
-        <OneSystem />
-        <Closing />
+        <OneOrder />
+        <WhatYouKeep />
+        <SaturdayEight />
+        <InteractiveDemo />
+        <FinalCta />
       </main>
       <Footer />
     </>

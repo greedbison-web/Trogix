@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Button, Container } from "@/components/primitives";
 
 const links = [
-  { label: "Product", href: "#surfaces" },
-  { label: "The journey", href: "#journey" },
-  { label: "System", href: "#system" },
+  { label: "Product", href: "#one-order" },
+  { label: "Demo", href: "#demo" },
+  { label: "System", href: "#what-you-keep" },
 ];
 
 export function Nav() {
@@ -46,12 +46,12 @@ export function Nav() {
 
         <div className="flex items-center gap-2">
           <span className="hidden sm:block">
-            <Button href="#contact" variant="ghost">
+            <Button href="mailto:hello@trogix.co.in" variant="ghost">
               Sign in
             </Button>
           </span>
-          <Button href="#contact" variant="primary">
-            Request access
+          <Button href="#demo" variant="primary">
+            See the demo
           </Button>
         </div>
       </Container>

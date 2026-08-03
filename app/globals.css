@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/*
+  Trogix Design System
+  --------------------
+  One operating system, one surface language.
+  Paper for calm, ink for authority, a single accent for intent.
+  Every module (marketing, dashboard, kitchen, ordering) inherits from here.
+*/
+
+@theme {
+  /* ---- Locked brand tokens ---- */
+  --color-paper: #f4f1ea;
+  --color-ink: #111111;
+  --color-accent: #449eb9;
+
+  /* ---- Paper surfaces: the printed-page hierarchy ---- */
+  --color-paper-raised: #faf8f4;
+  --color-paper-sunken: #ebe7dd;
+  --color-paper-edge: #ded9cc;
+
+  /* ---- Ink scale: never pure grey, always warm ---- */
+  --color-ink-900: #111111;
+  --color-ink-700: #33322e;
+  --color-ink-500: #6b6963;
+  --color-ink-300: #9c998f;
+  --color-ink-100: #c8c4b8;
+
+  /* ---- Accent scale ---- */
+  --color-accent-soft: #e4f0f4;
+  --color-accent-deep: #2f7c94;
+
+  /* ---- Typography ---- */
+  --font-serif: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
+  --font-sans: var(--font-geist), "Geist", ui-sans-serif, system-ui, sans-serif;
+
+  /* Editorial display scale — fluid, never breaks the grid */
+  --text-display: clamp(2.5rem, 7.2vw, 6rem);
+  --text-display--line-height: 0.92;
+  --text-display--letter-spacing: -0.03em;
+
+  --text-headline: clamp(2.25rem, 5.2vw, 4.5rem);
+  --text-headline--line-height: 1;
+  --text-headline--letter-spacing: -0.025em;
+
+  --text-title: clamp(1.6rem, 2.6vw, 2.5rem);
+  --text-title--line-height: 1.1;
+  --text-title--letter-spacing: -0.02em;
+
+  --text-lede: clamp(1.05rem, 1.5vw, 1.375rem);
+  --text-lede--line-height: 1.55;
+
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1;
+  --text-eyebrow--letter-spacing: 0.16em;
+
+  /* ---- Elevation: soft, physical, single light source ---- */
+  --shadow-paper: 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 12px rgba(17, 17, 17, 0.03);
+  --shadow-lift: 0 2px 4px rgba(17, 17, 17, 0.04), 0 12px 32px rgba(17, 17, 17, 0.06);
+  --shadow-float: 0 4px 8px rgba(17, 17, 17, 0.04), 0 24px 64px rgba(17, 17, 17, 0.1),
+    0 48px 120px rgba(17, 17, 17, 0.06);
+
+  /* ---- Motion: iOS easing. Nothing bounces. ---- */
+  --ease-out-ios: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-ios: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ------------------------------------------------------------------ */
+
+* {
+  border-color: var(--color-paper-edge);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Instrument Serif has no true italic pairing at display size — keep it upright */
+.font-serif {
+  font-weight: 400;
+}
+
+/* ---- Reveal: the only motion primitive on the site ---- */
+@utility reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  filter: blur(6px);
+  transition:
+    opacity 1s var(--ease-out-ios),
+    transform 1s var(--ease-out-ios),
+    filter 1s var(--ease-out-ios);
+  will-change: opacity, transform;
+}
+
+@utility reveal-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* ---- Paper grain: the surface you can almost feel ---- */
+@utility grain {
+  position: relative;
+}
+
+@utility grain-overlay {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}

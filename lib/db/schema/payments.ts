@@ -36,6 +36,11 @@ export const payments = pgTable(
     providerSignature: text("provider_signature"),
     providerPayload: jsonb("provider_payload"),
 
+    /** The connected account the charge was created on. */
+    accountId: text("account_id"),
+    /** Idempotency guard for webhook replays. */
+    providerEventId: text("provider_event_id"),
+
     failureReason: text("failure_reason"),
     refundedAmount: integer("refunded_amount").notNull().default(0),
 
@@ -48,6 +53,7 @@ export const payments = pgTable(
     index("payments_order_id_idx").on(t.orderId),
     index("payments_status_idx").on(t.businessId, t.status),
     uniqueIndex("payments_provider_payment_id_key").on(t.providerPaymentId),
+    uniqueIndex("payments_provider_order_id_key").on(t.providerOrderId),
   ],
 );
 

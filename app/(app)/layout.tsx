@@ -28,6 +28,7 @@ export default async function AppLayout({
                 { href: "/dashboard/menu", label: "Menu" },
                 { href: "/dashboard/tables", label: "Tables" },
                 { href: "/dashboard/analytics", label: "Analytics" },
+                { href: "/dashboard/payments", label: "Payments" },
                 { href: "/kitchen", label: "Kitchen" },
               ].map((link) => (
                 <Link

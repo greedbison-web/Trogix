@@ -50,6 +50,7 @@ export const tableStatusEnum = pgEnum("table_status", [
 
 export const orderStatusEnum = pgEnum("order_status", [
   "draft",
+  "awaiting_payment",
   "placed",
   "accepted",
   "preparing",
@@ -94,4 +95,11 @@ export const spiceLevelEnum = pgEnum("spice_level", [
   "mild",
   "medium",
   "hot",
+]);
+
+export const paymentAccountStatusEnum = pgEnum("payment_account_status", [
+  "disconnected",
+  "connected",
+  "expired",
+  "revoked",
 ]);

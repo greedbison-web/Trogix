@@ -5,5 +5,6 @@ export * from "./staff";
 export * from "./tables";
 export * from "./menu";
 export * from "./orders";
+export * from "./payment-accounts";
 export * from "./payments";
 export * from "./relations";

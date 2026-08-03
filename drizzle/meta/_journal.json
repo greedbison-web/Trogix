@@ -15,6 +15,13 @@
       "when": 1785731271228,
       "tag": "0002_menu_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785733046587,
+      "tag": "0003_payment_accounts",
+      "breakpoints": true
     }
   ]
 }

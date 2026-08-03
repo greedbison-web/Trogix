@@ -13,6 +13,10 @@
 - [ ] `Sign in` links to mailto until auth exists.
 - [ ] Dashboard quick actions link to /dashboard/menu, /dashboard/tables and
       /dashboard/orders — these routes 404 until those features ship.
-- [ ] Razorpay capture: needs RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET and a
-      webhook route. UPI intent links work today from business_settings.upi_id.
+- [ ] Register the Razorpay partner app, set RAZORPAY_CLIENT_ID/SECRET,
+      RAZORPAY_WEBHOOK_SECRET, APP_ENCRYPTION_KEY and NEXT_PUBLIC_APP_URL, and
+      point the webhook at /api/webhooks/razorpay (payment.captured,
+      payment.failed).
+- [ ] business_settings.payment_mode and upi_id are now unused by the app;
+      drop them in a later migration once nothing reads them.
 - [ ] WhatsApp order updates: needs a BSP account before wiring.

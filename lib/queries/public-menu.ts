@@ -14,9 +14,9 @@ export type PublicVenue = {
   secondaryColor: string;
   serviceCharge: number;
   taxEnabled: boolean;
-  paymentMode: "upi" | "razorpay" | "cash" | "disabled";
-  upiId: string | null;
   receiptFooter: string | null;
+  /** True only when the restaurant's own gateway account is connected. */
+  acceptsPayments: boolean;
 };
 
 export type PublicTable = { id: string; label: string } | null;
@@ -42,6 +42,17 @@ export async function getVenue(slug: string): Promise<PublicVenue | null> {
   const row = rows[0];
   if (!row) return null;
 
+  const [account] = await db
+    .select({ status: schema.paymentAccounts.status })
+    .from(schema.paymentAccounts)
+    .where(
+      and(
+        eq(schema.paymentAccounts.businessId, row.business.id),
+        eq(schema.paymentAccounts.provider, "razorpay"),
+      ),
+    )
+    .limit(1);
+
   return {
     businessId: row.business.id,
     name: row.business.name,
@@ -53,9 +64,8 @@ export async function getVenue(slug: string): Promise<PublicVenue | null> {
     secondaryColor: row.settings?.secondaryColor ?? "#449EB9",
     serviceCharge: row.settings?.serviceCharge ?? 0,
     taxEnabled: row.settings?.taxEnabled ?? true,
-    paymentMode: row.settings?.paymentMode ?? "upi",
-    upiId: row.settings?.upiId ?? null,
     receiptFooter: row.settings?.receiptFooter ?? null,
+    acceptsPayments: account?.status === "connected",
   };
 }
 

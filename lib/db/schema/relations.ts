@@ -6,6 +6,7 @@ import { restaurantTables } from "./tables";
 import { categories, menuItems, itemVariants } from "./menu";
 import { orders, orderItems } from "./orders";
 import { payments, receipts } from "./payments";
+import { paymentAccounts } from "./payment-accounts";
 
 export const usersRelations = relations(users, ({ many }) => ({
   businesses: many(businesses),
@@ -25,6 +26,14 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   orders: many(orders),
   payments: many(payments),
   receipts: many(receipts),
+  paymentAccount: one(paymentAccounts),
+}));
+
+export const paymentAccountsRelations = relations(paymentAccounts, ({ one }) => ({
+  business: one(businesses, {
+    fields: [paymentAccounts.businessId],
+    references: [businesses.id],
+  }),
 }));
 
 export const businessSettingsRelations = relations(businessSettings, ({ one }) => ({

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderRow } from "@/lib/queries/orders";
 import { formatMoney, formatTime } from "@/lib/format";
-import { setOrderStatus, recordPayment } from "./actions";
+import { setOrderStatus } from "./actions";
 
 const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
   placed: { label: "Accept", value: "accepted" },
@@ -153,28 +153,21 @@ export function OrdersBoard({
                       </button>
                     ) : null}
 
-                    {order.paymentStatus === "succeeded" ? (
-                      <span className="flex h-10 items-center rounded-full bg-accent-soft px-4 text-micro font-medium text-accent-deep">
-                        Paid
-                      </span>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => run(() => recordPayment(order.id, "upi"))}
-                          className="h-10 rounded-full border border-paper-edge px-4 text-micro font-medium text-ink-700 hover:border-ink-300"
-                        >
-                          Paid by UPI
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => run(() => recordPayment(order.id, "cash"))}
-                          className="h-10 rounded-full border border-paper-edge px-4 text-micro font-medium text-ink-700 hover:border-ink-300"
-                        >
-                          Paid by cash
-                        </button>
-                      </>
-                    )}
+                    <span
+                      className={`flex h-10 items-center rounded-full px-4 text-micro font-medium ${
+                        order.paymentStatus === "succeeded"
+                          ? "bg-accent-soft text-accent-deep"
+                          : order.paymentStatus === "failed"
+                            ? "bg-paper-sunken text-[var(--color-state-late)]"
+                            : "bg-paper-sunken text-ink-500"
+                      }`}
+                    >
+                      {order.paymentStatus === "succeeded"
+                        ? "Paid"
+                        : order.paymentStatus === "failed"
+                          ? "Payment failed"
+                          : "Awaiting payment"}
+                    </span>
 
                     <button
                       type="button"

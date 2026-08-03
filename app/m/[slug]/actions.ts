@@ -4,6 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/lib/db";
 import { priceOrder, type PricedLine } from "@/lib/pricing";
+import { createRazorpayOrder } from "@/lib/razorpay/api";
 
 const lineSchema = z.object({
   itemId: z.string().uuid(),
@@ -26,7 +27,19 @@ const placeOrderSchema = z.object({
 });
 
 export type PlaceOrderResult =
-  | { ok: true; orderId: string; orderNumber: number; total: number }
+  | {
+      ok: true;
+      orderId: string;
+      orderNumber: number;
+      total: number;
+      currency: string;
+      /** Razorpay checkout handover — the charge lives on the restaurant's account. */
+      checkout: {
+        keyId: string;
+        razorpayOrderId: string;
+        businessName: string;
+      };
+    }
   | { ok: false; message: string };
 
 /**
@@ -50,6 +63,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
   const [venue] = await db
     .select({
       businessId: schema.businesses.id,
+      businessName: schema.businesses.name,
       currency: schema.businesses.currency,
       serviceCharge: schema.businessSettings.serviceCharge,
       taxEnabled: schema.businessSettings.taxEnabled,
@@ -149,7 +163,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           businessId: venue.businessId,
           tableId,
           orderNumber: next,
-          status: "placed",
+          status: "awaiting_payment",
           type: tableId ? "dine_in" : "takeaway",
           guestName: guestName || null,
           guestPhone: guestPhone || null,
@@ -159,7 +173,6 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           serviceChargeAmount: totals.serviceChargeAmount,
           total: totals.total,
           currency: venue.currency,
-          placedAt: new Date(),
         })
         .returning({
           id: schema.orders.id,
@@ -180,14 +193,41 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
         })),
       );
 
-      if (tableId) {
-        await tx
-          .update(schema.restaurantTables)
-          .set({ status: "seated" })
-          .where(eq(schema.restaurantTables.id, tableId));
-      }
-
       return order;
+    });
+
+    // The charge is created ON the restaurant's Razorpay account.
+    const charge = await createRazorpayOrder(venue.businessId, {
+      amount: totals.total,
+      currency: venue.currency,
+      receipt: `order-${created.orderNumber}`,
+      notes: {
+        trogix_order_id: created.id,
+        order_number: String(created.orderNumber),
+      },
+    });
+
+    if (!charge || !charge.publicKey) {
+      await db
+        .update(schema.orders)
+        .set({ status: "cancelled", cancelledAt: new Date() })
+        .where(eq(schema.orders.id, created.id));
+      return {
+        ok: false,
+        message:
+          "This restaurant cannot take payments right now. Please speak to your server.",
+      };
+    }
+
+    await db.insert(schema.payments).values({
+      businessId: venue.businessId,
+      orderId: created.id,
+      amount: totals.total,
+      currency: venue.currency,
+      status: "pending",
+      provider: "razorpay",
+      providerOrderId: charge.order.id,
+      accountId: charge.accountId,
     });
 
     return {
@@ -195,8 +235,33 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
       orderId: created.id,
       orderNumber: created.orderNumber,
       total: totals.total,
+      currency: venue.currency,
+      checkout: {
+        keyId: charge.publicKey,
+        razorpayOrderId: charge.order.id,
+        businessName: venue.businessName,
+      },
     };
   } catch {
     return { ok: false, message: "Could not place your order. Please try again." };
+  }
+}
+
+/** Poll target for the guest confirmation screen. Webhook is authoritative. */
+export async function getOrderPaymentState(orderId: string) {
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({
+        orderStatus: schema.orders.status,
+        paymentStatus: schema.payments.status,
+      })
+      .from(schema.orders)
+      .leftJoin(schema.payments, eq(schema.payments.orderId, schema.orders.id))
+      .where(eq(schema.orders.id, orderId))
+      .limit(1);
+    return row ?? null;
+  } catch {
+    return null;
   }
 }

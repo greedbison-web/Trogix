@@ -5,7 +5,8 @@ import type { MenuCategory, MenuItemRow } from "@/lib/queries/menu";
 import type { PublicVenue } from "@/lib/queries/public-menu";
 import { formatMoney } from "@/lib/format";
 import { priceOrder, type PricedLine } from "@/lib/pricing";
-import { placeOrder } from "./actions";
+import { placeOrder, getOrderPaymentState } from "./actions";
+import { RazorpayCheckout } from "./RazorpayCheckout";
 
 type Line = { itemId: string; variantId: string | null; quantity: number };
 
@@ -24,7 +25,12 @@ export function GuestMenu({
   const [openCategory, setOpenCategory] = useState(categories[0]?.id ?? "");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [placed, setPlaced] = useState<{ number: number; total: number } | null>(null);
+  const [placed, setPlaced] = useState<{
+    orderId: string;
+    number: number;
+    total: number;
+    checkout: { keyId: string; razorpayOrderId: string; businessName: string };
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -91,7 +97,12 @@ export function GuestMenu({
         lines,
       });
       if (result.ok) {
-        setPlaced({ number: result.orderNumber, total: result.total });
+        setPlaced({
+          orderId: result.orderId,
+          number: result.orderNumber,
+          total: result.total,
+          checkout: result.checkout,
+        });
         setLines([]);
         setCheckoutOpen(false);
         setCartOpen(false);
@@ -103,11 +114,14 @@ export function GuestMenu({
 
   if (placed) {
     return (
-      <Confirmation
+      <RazorpayCheckout
         venue={venue}
         table={table}
+        orderId={placed.orderId}
         orderNumber={placed.number}
         total={placed.total}
+        checkout={placed.checkout}
+        pollState={getOrderPaymentState}
         onDone={() => setPlaced(null)}
       />
     );
@@ -236,16 +250,23 @@ export function GuestMenu({
 
               <Totals totals={totals} venue={venue} />
 
-              <button
-                type="button"
-                onClick={() => {
-                  setCartOpen(false);
-                  setCheckoutOpen(true);
-                }}
-                className="mt-6 h-12 w-full rounded-full bg-ink text-caption font-medium text-paper"
-              >
-                Continue
-              </button>
+              {venue.acceptsPayments ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCartOpen(false);
+                    setCheckoutOpen(true);
+                  }}
+                  className="mt-6 h-12 w-full rounded-full bg-ink text-caption font-medium text-paper"
+                >
+                  Continue
+                </button>
+              ) : (
+                <p className="mt-6 rounded-xl bg-paper-sunken px-4 py-3 text-center text-caption text-ink-500">
+                  This restaurant isn&apos;t taking online payments yet. Please
+                  order with your server.
+                </p>
+              )}
             </>
           )}
         </Sheet>
@@ -300,8 +321,8 @@ export function GuestMenu({
               className="h-12 w-full rounded-full bg-accent text-caption font-medium text-white disabled:opacity-60"
             >
               {pending
-                ? "Sending to kitchen…"
-                : `Place order · ${formatMoney(totals.total, venue.currency)}`}
+                ? "Preparing payment…"
+                : `Pay ${formatMoney(totals.total, venue.currency)}`}
             </button>
           </form>
         </Sheet>
@@ -458,70 +479,6 @@ function Sheet({
         </div>
         {children}
       </div>
-    </div>
-  );
-}
-
-function Confirmation({
-  venue,
-  table,
-  orderNumber,
-  total,
-  onDone,
-}: {
-  venue: PublicVenue;
-  table: { id: string; label: string } | null;
-  orderNumber: number;
-  total: number;
-  onDone: () => void;
-}) {
-  const upiLink =
-    venue.paymentMode === "upi" && venue.upiId
-      ? `upi://pay?pa=${encodeURIComponent(venue.upiId)}&pn=${encodeURIComponent(
-          venue.name,
-        )}&am=${(total / 100).toFixed(2)}&cu=${venue.currency}&tn=${encodeURIComponent(
-          `Order ${orderNumber}`,
-        )}`
-      : null;
-
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft">
-        <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-      </div>
-      <h1 className="mt-8 font-serif text-[2rem] leading-none tracking-[-0.02em]">
-        Order #{orderNumber} is with the kitchen
-      </h1>
-      <p className="mt-3 max-w-[320px] text-caption leading-relaxed text-ink-500">
-        {table ? `Table ${table.label} · ` : ""}
-        {venue.name} has received your order.
-      </p>
-      <p className="mt-6 font-serif text-[2.5rem] leading-none tabular-nums">
-        {formatMoney(total, venue.currency)}
-      </p>
-
-      {upiLink ? (
-        <a
-          href={upiLink}
-          className="mt-8 inline-flex h-12 items-center rounded-full bg-accent px-7 text-caption font-medium text-white"
-        >
-          Pay by UPI
-        </a>
-      ) : (
-        <p className="mt-8 text-caption text-ink-500">
-          {venue.paymentMode === "cash"
-            ? "Please pay at the counter."
-            : "Your server will bring the bill."}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={onDone}
-        className="mt-4 text-caption text-ink-500 underline underline-offset-4"
-      >
-        Order something else
-      </button>
     </div>
   );
 }

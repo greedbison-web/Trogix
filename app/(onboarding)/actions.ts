@@ -198,5 +198,5 @@ export async function createBusiness(
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect("/onboarding/payments");
 }

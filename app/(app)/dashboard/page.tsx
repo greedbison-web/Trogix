@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getDashboardData, emptyDashboard } from "@/lib/queries/dashboard";
 import { BUSINESS_TYPES } from "@/lib/validation/business";
 import { formatDate } from "@/lib/format";
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   const { business, settings } = record;

@@ -103,3 +103,27 @@ export const paymentAccountStatusEnum = pgEnum("payment_account_status", [
   "expired",
   "revoked",
 ]);
+
+export const adminRoleEnum = pgEnum("admin_role", [
+  "owner",
+  "admin",
+  "support",
+  "readonly",
+]);
+
+export const adminStatusEnum = pgEnum("admin_status", ["active", "disabled"]);
+
+export const notificationLevelEnum = pgEnum("notification_level", [
+  "info",
+  "warning",
+  "critical",
+]);
+
+export const webhookStatusEnum = pgEnum("webhook_status", [
+  "received",
+  "processed",
+  "failed",
+  "rejected",
+]);
+
+export const logLevelEnum = pgEnum("log_level", ["info", "warn", "error"]);

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getTables, type TableRow } from "@/lib/queries/tables";
 import { TableManager } from "./TableManager";
 
@@ -12,7 +12,7 @@ export default async function TablesPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   let tables: TableRow[] = [];

@@ -4,6 +4,7 @@ import {
   text,
   integer,
   boolean,
+  timestamp,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -91,6 +92,10 @@ export const businessSettings = pgTable(
     businessStatus: businessStatusEnum("business_status")
       .notNull()
       .default("onboarding"),
+    trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+    planStartedAt: timestamp("plan_started_at", { withTimezone: true }),
+    planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
+    couponCode: text("coupon_code"),
 
     ...timestamps,
   },

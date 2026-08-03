@@ -7,4 +7,5 @@ export * from "./menu";
 export * from "./orders";
 export * from "./payment-accounts";
 export * from "./payments";
+export * from "./platform";
 export * from "./relations";

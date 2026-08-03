@@ -6,6 +6,7 @@ import {
   getPublicMenu,
 } from "@/lib/queries/public-menu";
 import { GuestMenu } from "./GuestMenu";
+import { recordQrScan } from "@/lib/queries/qr-scan";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,9 @@ export default async function GuestMenuPage({
     getPublicMenu(venue.businessId),
     getTableByToken(venue.businessId, t),
   ]);
+
+  // Fire-and-forget: powers live monitoring, never blocks the guest.
+  if (t) void recordQrScan(venue.businessId, table?.id ?? null, table?.label ?? null);
 
   if (categories.length === 0) {
     return (

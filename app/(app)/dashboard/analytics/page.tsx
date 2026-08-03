@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getAnalytics, type Analytics } from "@/lib/queries/analytics";
 import { formatMoney } from "@/lib/format";
 
@@ -21,7 +21,7 @@ export default async function AnalyticsPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   let data = EMPTY;

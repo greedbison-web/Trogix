@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getMenu, type MenuCategory } from "@/lib/queries/menu";
 import { MenuBuilder } from "./MenuBuilder";
 
@@ -11,7 +11,7 @@ export default async function MenuPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   let categories: MenuCategory[] = [];

@@ -22,6 +22,13 @@
       "when": 1785733046587,
       "tag": "0003_payment_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785742252212,
+      "tag": "0004_platform_admin",
+      "breakpoints": true
     }
   ]
 }

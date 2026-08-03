@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getTables } from "@/lib/queries/tables";
 
 export const metadata: Metadata = { title: "Print QR codes" };
@@ -12,7 +12,7 @@ export default async function PrintPage() {
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   const tables = await getTables(record.business.id).catch(() => []);

@@ -20,3 +20,5 @@
 - [ ] business_settings.payment_mode and upi_id are now unused by the app;
       drop them in a later migration once nothing reads them.
 - [ ] WhatsApp order updates: needs a BSP account before wiring.
+- [ ] Grant the first platform admin by SQL (see PROJECT_STATUS.md); there is
+      no self-service path into /admin by design.

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/server";
-import { getBusinessForOwner } from "@/lib/queries/business";
+import { getActiveBusiness } from "@/lib/queries/business";
 import { getOrders, type OrderRow } from "@/lib/queries/orders";
 import { OrdersBoard } from "./OrdersBoard";
 
@@ -16,7 +16,7 @@ export default async function OrdersPage({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const record = await getBusinessForOwner(user.id);
+  const record = await getActiveBusiness(user.id);
   if (!record) redirect("/onboarding");
 
   const raw = (await searchParams).filter;

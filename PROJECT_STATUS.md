@@ -200,8 +200,15 @@ RESEND_API_KEY=
 EMAIL_FROM=
 ```
 
-The app builds and runs with none of these set — screens degrade to empty
-states rather than crashing.
+`.env.example` is the authoritative version, with a comment on every variable
+explaining what breaks without it.
+
+The app builds with none of these set, and screens degrade to empty states
+rather than crashing. At runtime, though, `DATABASE_URL`, the two Supabase
+values, `APP_ENCRYPTION_KEY`, `NEXT_PUBLIC_APP_URL` and the Resend pair are all
+required — signup delivers a verification code by email, so an owner cannot
+create an account without them. `GET /api/health` reports which groups are
+present.
 
 ### Granting the first admin
 There is no self-service path into `/admin` by design. Insert the first row
@@ -209,8 +216,11 @@ directly, then use Security → Grant access for everyone after:
 
 ```sql
 insert into platform_admins (user_id, role, status)
-select id, 'owner', 'active' from users where email = 'you@trogix.co.in';
+select id, 'owner', 'active' from users where email = 'you@trogix.co.in'
+on conflict (user_id) do update set role = 'owner', status = 'active';
 ```
+
+Full walkthrough: `FIRST_ADMIN_SETUP.md`.
 
 ---
 
@@ -252,9 +262,11 @@ Against a real PostgreSQL 16 instance, not mocks:
 - **Razorpay live paths unverified.** The OAuth token exchange and
   `POST /v1/orders` are written to the documented API but have never run
   against Razorpay — no credentials. Everything downstream of them is verified.
-- **No deployment.** Nothing has been deployed; no CI.
-- **Rate limiting and structured logging** are not implemented; load testing
-  has not been done.
+- **No deployment yet.** The project is deployment-ready and documented but
+  has not been deployed; no CI.
+- **Structured logging** is not implemented; load testing has not been done.
+  Rate limiting exists for signup and verification only — per-account counters
+  and per-IP fixed windows held in Postgres.
 - **Reviews and loyalty** — modules from the original vision, not started.
 - **Messaging providers unverified.** The WhatsApp and Resend adapters are
   written to their documented APIs but have never run against them — no
@@ -264,13 +276,35 @@ Against a real PostgreSQL 16 instance, not mocks:
 
 ## Deployment
 
+Ready. Follow, in order: `DEPLOY_SUPABASE.md`, `DEPLOY_VERCEL.md`,
+`RESEND_SETUP.md`, `FIRST_ADMIN_SETUP.md`, `RAZORPAY_SETUP.md`. When something
+is wrong, `TROUBLESHOOTING.md`.
+
 `vercel.json` pins the Mumbai region and raises the timeout for the webhook and
 the two document generators. Security headers (CSP, HSTS, nosniff, frame-deny,
-permissions policy) are set in `next.config.ts`. `/api/health` reports liveness
-and database reachability for uptime checks. Global error and 404 boundaries
-are in place.
+permissions policy) are set in `next.config.ts`. Global error and 404
+boundaries are in place.
 
-Nothing has been deployed. Before a first deploy: set the environment above,
-run all eight migrations, and grant the first platform admin.
+`/api/health` reports liveness, database reachability and which configuration
+groups are present — never a value. `lib/env.ts` is the single source of truth
+for what is required and what breaks without it.
+
+Verified for deployment against a Postgres 16 instance configured like a fresh
+Supabase project (anon/authenticated/service_role roles, `auth` and `storage`
+schemas, Supabase's default table privileges):
+
+- All 11 migrations apply clean from scratch, in filename order — 28 tables,
+  RLS on every one, 11 platform settings, both storage buckets
+- The `anon` role holds no privilege on any table in `public`
+- `authenticated` may UPDATE only `full_name` and `avatar_url` on `users`, and
+  holds nothing at all on the ten server-only tables
+- Every authenticated route redirects an anonymous visitor to `/login`; every
+  public route serves; an unapproved restaurant's guest menu returns 404
+- Production build and typecheck clean; every route resolves in a running
+  `next start`
+
+Migration `0010` exists because RLS restricts rows but never columns: the
+"Users update themselves" policy would otherwise have let a client set its own
+`email_verified_at` with the public anon key and skip verification entirely.
 
 See `TODO.md` for the working list.

@@ -4,6 +4,7 @@ import { getBusinessForOwner } from "@/lib/queries/business";
 import { authorizeUrl, razorpayEnv } from "@/lib/razorpay/oauth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 /** Starts the OAuth handshake for the signed-in owner's business. */
 export async function GET(request: Request) {

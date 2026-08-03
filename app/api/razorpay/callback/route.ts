@@ -9,6 +9,7 @@ import {
 } from "@/lib/razorpay/oauth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 /** Razorpay redirects here after the restaurant authorises Trogix. */
 export async function GET(request: Request) {

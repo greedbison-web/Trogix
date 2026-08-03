@@ -81,7 +81,7 @@ export function Nav() {
         <div className="flex items-center gap-2">
           <span className="hidden sm:block">
             <a
-              href="mailto:hello@trogix.co.in"
+              href="/login"
               className={`inline-flex h-11 items-center rounded-full px-5 text-caption font-medium transition-colors duration-300 ${ghost}`}
             >
               Sign in

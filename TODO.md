@@ -1,24 +1,28 @@
 # TODO
 
-- [ ] §4 `SaturdayEight.tsx` — commitment `straight-to-the-pass` is a
-      placeholder for the unverified "Works offline" claim. Replace once the
-      offline guarantee is confirmed. No uptime/latency figures without data.
+Open items only. Anything not listed here is done — see `PROJECT_STATUS.md`.
+
+## Content
+
+- [ ] §4 `SaturdayEight.tsx` — the commitment `straight-to-the-pass` stands in
+      for the unverified "Works offline" claim. Replace once the offline
+      guarantee is real. No uptime or latency figures without measurements.
 - [ ] `lib/demo-restaurant.ts` — confirm Sundara / Bandra / ₹ as the permanent
-      demo restaurant, or swap the fixture (single file, no other changes).
-- [ ] §5 "Open the full demo" links to mailto. Point at the standalone guest
-      demo route once it exists.
-- [ ] Photography: PHOTO SLOT A (hero, behind device) and PHOTO SLOT B (§4,
-      behind the pass) are reserved and currently render as designed negative
-      space.
-- [ ] `Sign in` links to mailto until auth exists.
-- [ ] Dashboard quick actions link to /dashboard/menu, /dashboard/tables and
-      /dashboard/orders — these routes 404 until those features ship.
-- [ ] Register the Razorpay partner app, set RAZORPAY_CLIENT_ID/SECRET,
-      RAZORPAY_WEBHOOK_SECRET, APP_ENCRYPTION_KEY and NEXT_PUBLIC_APP_URL, and
-      point the webhook at /api/webhooks/razorpay (payment.captured,
-      payment.failed).
-- [ ] business_settings.payment_mode and upi_id are now unused by the app;
-      drop them in a later migration once nothing reads them.
-- [ ] WhatsApp order updates: needs a BSP account before wiring.
-- [ ] Grant the first platform admin by SQL (see PROJECT_STATUS.md); there is
-      no self-service path into /admin by design.
+      demo fixture for the marketing page, or swap it. Single file, no other
+      changes.
+- [ ] §5 "Open the full demo" opens a mailto. Point it at a standalone guest
+      demo route once one exists.
+- [ ] Photography: PHOTO SLOT A (hero) and PHOTO SLOT B (§4) are reserved and
+      currently render as designed negative space.
+
+## Product
+
+- [ ] WhatsApp order updates need a BSP account before the adapter can be
+      exercised. Messages queue as `skipped` until then.
+- [ ] `business_settings.payment_mode` and `upi_id` are no longer read by the
+      app. Drop them in a later migration once nothing references them.
+- [ ] Rehearse a full Razorpay test-mode payment. The token exchange and order
+      creation have never run against live credentials — see
+      `RAZORPAY_SETUP.md`.
+- [ ] Schedule `purge_expired_verification()` (created in migration 0009) as a
+      daily Supabase cron job. Nothing breaks without it; the tables just grow.

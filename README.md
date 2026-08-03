@@ -6,35 +6,67 @@ Trogix is not a QR-menu tool. It is one system that runs the whole evening —
 arrival, menu, ordering, kitchen, payment, messaging, receipt, and the return
 visit — so a restaurant does not have to stitch six products together.
 
-This repository currently contains the **marketing website**. The other modules
-(dashboard, ordering, kitchen display, payments, messaging, analytics, reviews,
-loyalty) will be added alongside it and are expected to inherit the design
-system defined here.
+## Deploying
+
+Follow these in order:
+
+1. [DEPLOY_SUPABASE.md](./DEPLOY_SUPABASE.md) — database, migrations, auth
+2. [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) — hosting, environment, domain
+3. [RESEND_SETUP.md](./RESEND_SETUP.md) — email; **required**, signup sends a
+   verification code
+4. [FIRST_ADMIN_SETUP.md](./FIRST_ADMIN_SETUP.md) — grant yourself `/admin`
+5. [RAZORPAY_SETUP.md](./RAZORPAY_SETUP.md) — payments; optional
+6. [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — when something is wrong
+
+Current state of every module: [PROJECT_STATUS.md](./PROJECT_STATUS.md).
 
 ## Stack
 
-- Next.js 15 (App Router) + React 19
-- TypeScript
+- Next.js 15 (App Router) + React 19, TypeScript strict
 - Tailwind CSS v4 (CSS-first config, no `tailwind.config.js`)
-- Deployed on Vercel
-
-PostgreSQL + Drizzle ORM arrive with the first product module; the marketing
-site is fully static and needs no database.
+- PostgreSQL via Drizzle ORM and postgres-js, hosted on Supabase
+- Supabase Auth — email/password and Google
+- Razorpay Connect for restaurant-owned payment accounts
+- Resend for email
+- Deployed on Vercel (`bom1`)
 
 ## Getting started
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # production build
+cp .env.example .env.local     # then fill it in
+npm run dev                    # http://localhost:3000
 npm run typecheck
+npm run build
+```
+
+`.env.example` documents every variable and what breaks without it. At
+runtime, `GET /api/health` reports which groups are configured — values are
+never printed.
+
+Migrations are the numbered files in `drizzle/`. Run them in filename order;
+do not use `drizzle-kit push`, which does not know about the custom migrations
+that create the RLS policies and column grants.
+
+## Layout
+
+```
+app/(auth)         signup, login, OTP verification
+app/(onboarding)   business setup and payment connection
+app/(app)          restaurant dashboard
+app/(kds)          kitchen display, full-bleed
+app/(admin)        Trogix platform console
+app/m/[slug]       guest menu and ordering
+app/api            health, Razorpay OAuth and webhook
+lib/               db schema and queries, auth, verification, payments
+components/site    the frozen marketing homepage
 ```
 
 ## Design system
 
-Everything visual is derived from tokens in `app/globals.css` under `@theme`.
-Nothing should hardcode a hex value — add a token instead, so every future
-module stays in the same language.
+Everything visual derives from tokens in `app/globals.css` under `@theme`.
+Nothing hardcodes a hex value — add a token instead, so every module stays in
+the same language.
 
 | Token | Value | Role |
 | --- | --- | --- |
@@ -43,49 +75,43 @@ module stays in the same language.
 | `--color-accent` | `#449EB9` | Intent, one accent only |
 
 Supporting scales (`paper-raised`, `paper-sunken`, `paper-edge`, `ink-700`
-through `ink-100`, `accent-soft`, `accent-deep`) exist so surfaces can be
-layered without introducing new hues.
+through `ink-100`, `accent-soft`, `accent-deep`) let surfaces layer without
+introducing new hues. `--color-state-late` is semantic, not a brand accent.
 
 **Type.** Instrument Serif for headings, Geist for body. The display scale
 (`text-display`, `text-headline`, `text-title`, `text-lede`, `text-eyebrow`) is
 fluid via `clamp()`, so headlines never need per-breakpoint overrides.
 
-**Surfaces.** Cards are warm printed paper — `Paper` in
-`components/primitives.tsx` — lit from a single source above via the
-`shadow-paper` / `shadow-lift` / `shadow-float` ladder. Liquid glass is used in
-exactly two places (the sticky nav and the guest order bar), where blur aids
-legibility over moving content rather than acting as decoration.
-
 **Motion.** One primitive: `components/Reveal.tsx`. Content settles once on
 first approach and is never re-animated. No parallax, no scroll-jacking. All
-motion uses the iOS easing curve and is fully disabled under
+motion uses the iOS easing curve and is disabled under
 `prefers-reduced-motion`.
 
-## Homepage architecture
+## Homepage
 
-The section order is an argument, not a layout — desire first, explanation
-second:
+Frozen. Six sections, built to an approved design review, not to be modified
+without an explicit request.
 
 | Section | Job |
 | --- | --- |
 | `Hero` | One sentence and one beautiful object. No feature list. |
-| `Manifesto` | A pause, and a belief. |
-| `Journey` | What Trogix actually is: one evening, eight moments, end to end. |
-| `Surfaces` | Proof of craft — guest, kitchen and owner screens at full size. |
-| `Principles` | Three commitments, set as display figures. |
-| `OneSystem` | Nine modules presented as a contents page, not a pricing matrix. |
-| `Closing` | The only inverted section on the page, so the invitation carries weight. |
+| `OneOrder` | The same order seen from guest, kitchen and owner. |
+| `WhatYouKeep` | What the restaurant owns: the guest, the data, the money. |
+| `SaturdayEight` | Three commitments, set as display figures. |
+| `InteractiveDemo` | A real order placed on the page. |
+| `FinalCta` | The only inverted section, so the invitation carries weight. |
 
-## Product mocks
-
-The screens in `components/mocks/` are real DOM, not screenshots. They stay
-crisp at any density, inherit the brand tokens automatically, and cannot drift
-from the product's visual language. Figures shown in them are illustrative.
+The product screens in `components/product/` are real DOM, not screenshots —
+they stay crisp at any density and cannot drift from the brand tokens. Their
+figures come from `lib/demo-restaurant.ts` and are illustrative.
 
 ## Conventions
 
 - Server Components by default; `"use client"` only where interaction demands
-  it (currently `Nav` and `Reveal`).
+  it. All mutations are Server Actions with Zod validation.
+- Money is stored and computed in integer minor units (paise). Never floats.
+- Every tenant-owned table carries `business_id`, and every query filters on
+  it. RLS is defence in depth, not the only boundary.
 - Layout via `Container` / `Section`; avoid ad-hoc max-widths.
 - Careful with Tailwind display utilities on `Button` — pass responsive
   visibility on a wrapper, since a `hidden` class on the component collides

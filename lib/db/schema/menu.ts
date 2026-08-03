@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { timestamps, softDelete } from "./_shared";
 import { businesses } from "./businesses";
+import { spiceLevelEnum } from "./enums";
 
 export const categories = pgTable(
   "categories",
@@ -53,6 +54,9 @@ export const menuItems = pgTable(
 
     isVegetarian: boolean("is_vegetarian").notNull().default(false),
     isAvailable: boolean("is_available").notNull().default(true),
+    isRecommended: boolean("is_recommended").notNull().default(false),
+    isBestseller: boolean("is_bestseller").notNull().default(false),
+    spiceLevel: spiceLevelEnum("spice_level").notNull().default("none"),
     /** Free-form allergen tags, e.g. {"nuts","dairy"}. */
     allergens: text("allergens").array(),
     preparationMinutes: integer("preparation_minutes"),

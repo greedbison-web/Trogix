@@ -88,3 +88,10 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "netbanking",
   "wallet",
 ]);
+
+export const spiceLevelEnum = pgEnum("spice_level", [
+  "none",
+  "mild",
+  "medium",
+  "hot",
+]);

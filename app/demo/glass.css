@@ -1,0 +1,296 @@
+/*
+  Liquid Glass — a self-contained visual demo.
+  --------------------------------------------
+  Scoped entirely under .glass-demo so it never touches the Trogix
+  paper design system. Tailwind handles layout, spacing and type;
+  this file owns the surface language, the accent and the motion.
+*/
+
+.glass-demo {
+  /* Ground: deep slate, cooling as it falls */
+  --slate-lift: #3f4855;
+  --slate-top: #363e4a;
+  --slate-mid: #232a34;
+  --slate-deep: #14181e;
+  --slate-floor: #0d1015;
+
+  /* Glass */
+  --glass-fill: rgba(255, 255, 255, 0.08);
+  --glass-fill-hover: rgba(255, 255, 255, 0.11);
+  --glass-edge: rgba(255, 255, 255, 0.07);
+  --glass-edge-top: rgba(255, 255, 255, 0.22);
+  --glass-edge-top-hover: rgba(255, 255, 255, 0.32);
+  --glass-radius: 24px;
+
+  /* Ink */
+  --text-body: #9fa3ad;
+  --text-quiet: #767c87;
+  --text-head: #f2f4f7;
+
+  /* The one warm note. Buttons only. */
+  --amber: #e3a24a;
+  --amber-lift: #f0b364;
+  --amber-sink: #cf8d35;
+  --amber-ink: #1b1206;
+
+  --ease-glass: cubic-bezier(0.16, 1, 0.3, 1);
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  color: var(--text-body);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont,
+    "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+  font-feature-settings: "kern", "liga", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Flat floor colour so the overscroll gutter never flashes paper */
+  background-color: var(--slate-deep);
+}
+
+/* The ground itself: fixed to the viewport so the full slate range is
+   always in frame, and breathing on a very long cycle. */
+.glass-demo::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(
+    168deg,
+    var(--slate-lift) 0%,
+    var(--slate-top) 22%,
+    var(--slate-mid) 52%,
+    var(--slate-deep) 80%,
+    var(--slate-floor) 100%
+  );
+  background-size: 100% 220%;
+  background-position: 50% 22%;
+  animation: glass-ground 54s ease-in-out infinite alternate;
+}
+
+@keyframes glass-ground {
+  from {
+    background-position: 50% 18%;
+  }
+  to {
+    background-position: 50% 46%;
+  }
+}
+
+/* ---- Ambient drift -------------------------------------------------
+   Three oversized, heavily blurred pools of light that wander across
+   the gradient on long, mismatched cycles. Nothing ever lines up
+   twice, and nothing ever announces itself.                          */
+
+.glass-ambient {
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.glass-ambient span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+}
+
+.glass-ambient span:nth-child(1) {
+  top: 4%;
+  left: 8%;
+  width: 46vw;
+  height: 46vw;
+  background: radial-gradient(
+    circle,
+    rgba(122, 139, 163, 0.34) 0%,
+    rgba(122, 139, 163, 0) 68%
+  );
+  animation: glass-drift-a 46s var(--ease-glass) infinite alternate;
+}
+
+.glass-ambient span:nth-child(2) {
+  top: 26%;
+  right: 2%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(
+    circle,
+    rgba(90, 106, 128, 0.3) 0%,
+    rgba(90, 106, 128, 0) 70%
+  );
+  animation: glass-drift-b 62s var(--ease-glass) infinite alternate;
+}
+
+.glass-ambient span:nth-child(3) {
+  bottom: 2%;
+  left: 30%;
+  width: 52vw;
+  height: 52vw;
+  background: radial-gradient(
+    circle,
+    rgba(63, 75, 92, 0.36) 0%,
+    rgba(63, 75, 92, 0) 72%
+  );
+  animation: glass-drift-c 78s var(--ease-glass) infinite alternate;
+}
+
+@keyframes glass-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(7vw, 5vh, 0) scale(1.14);
+  }
+}
+
+@keyframes glass-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-6vw, 8vh, 0) scale(0.94);
+  }
+}
+
+@keyframes glass-drift-c {
+  from {
+    transform: translate3d(0, 0, 0) scale(0.96);
+  }
+  to {
+    transform: translate3d(5vw, -7vh, 0) scale(1.12);
+  }
+}
+
+/* ---- Glass surface ------------------------------------------------ */
+
+.glass-panel {
+  position: relative;
+  border-radius: var(--glass-radius);
+  background-color: var(--glass-fill);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 55%
+  );
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-top);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+/* ---- Hover lift ---------------------------------------------------- */
+
+.glass-lift {
+  transition:
+    transform 0.55s var(--ease-glass),
+    box-shadow 0.55s var(--ease-glass),
+    background-color 0.55s var(--ease-glass),
+    border-top-color 0.55s var(--ease-glass);
+  will-change: transform;
+}
+
+.glass-lift:hover {
+  transform: translateY(-6px);
+  background-color: var(--glass-fill-hover);
+  border-top-color: var(--glass-edge-top-hover);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 30px 64px rgba(0, 0, 0, 0.32);
+}
+
+/* ---- Buttons: the only place the amber appears -------------------- */
+
+.glass-btn-amber {
+  background-image: linear-gradient(
+    180deg,
+    var(--amber-lift) 0%,
+    var(--amber) 52%,
+    var(--amber-sink) 100%
+  );
+  color: var(--amber-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 8px 22px rgba(207, 141, 53, 0.24);
+  transition:
+    transform 0.45s var(--ease-glass),
+    box-shadow 0.45s var(--ease-glass),
+    filter 0.45s var(--ease-glass);
+}
+
+.glass-btn-amber:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 12px 30px rgba(207, 141, 53, 0.3);
+}
+
+.glass-btn-ghost {
+  color: var(--text-head);
+  background-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-top-color: rgba(255, 255, 255, 0.2);
+  transition:
+    transform 0.45s var(--ease-glass),
+    background-color 0.45s var(--ease-glass);
+}
+
+.glass-btn-ghost:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ---- Type ---------------------------------------------------------- */
+
+.glass-display {
+  color: var(--text-head);
+  background: linear-gradient(174deg, #ffffff 8%, #c2c8d2 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-hairline {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* ---- Local overrides of the global (light-theme) chrome ----------- */
+
+.glass-demo ::selection {
+  background-color: rgba(227, 162, 74, 0.28);
+  color: var(--text-head);
+}
+
+.glass-demo :focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---- Reduced motion ------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-ambient span,
+  .glass-demo::before {
+    animation: none;
+  }
+
+  .glass-lift:hover,
+  .glass-btn-amber:hover,
+  .glass-btn-ghost:hover {
+    transform: none;
+  }
+}

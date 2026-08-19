@@ -7,6 +7,7 @@ import { getActiveBusiness } from "@/lib/queries/business";
 import { getNoticesForBusiness } from "@/lib/queries/notifications";
 import { getActiveImpersonation } from "@/lib/admin/impersonation";
 import { stopImpersonation } from "@/app/(admin)/admin/actions";
+import { isPreview } from "@/lib/preview/mode";
 
 export default async function AppLayout({
   children,
@@ -79,14 +80,20 @@ export default async function AppLayout({
             <span className="hidden text-micro text-ink-500 sm:block">
               {user.email}
             </span>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="h-9 rounded-full border border-paper-edge px-4 text-micro font-medium text-ink-700 transition-colors duration-200 hover:border-ink-300 hover:text-ink"
-              >
-                Sign out
-              </button>
-            </form>
+            {isPreview() ? (
+              <span className="h-9 rounded-full border border-paper-edge px-4 text-micro font-medium leading-9 text-ink-500">
+                Preview data
+              </span>
+            ) : (
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="h-9 rounded-full border border-paper-edge px-4 text-micro font-medium text-ink-700 transition-colors duration-200 hover:border-ink-300 hover:text-ink"
+                >
+                  Sign out
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </header>

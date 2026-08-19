@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
 import { WEEKDAYS, type HoursRow } from "@/lib/settings-constants";
 
@@ -14,6 +15,8 @@ export async function getOperatingHours(businessId: string): Promise<HoursRow[]>
     opensAt: "11:00",
     closesAt: "23:00",
   }));
+
+  if (isPreview()) return (await import("@/lib/preview/data")).previewHours;
 
   try {
     const db = getDb();
@@ -38,6 +41,7 @@ export async function getOperatingHours(businessId: string): Promise<HoursRow[]>
 }
 
 export async function getStaff(businessId: string) {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewStaff;
   try {
     const db = getDb();
     return await db

@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
 export type MenuVariant = {
   id: string;
@@ -51,6 +52,7 @@ export type MenuCategory = {
 
 /** Full menu tree for a business, ordered as the owner arranged it. */
 export async function getMenu(businessId: string): Promise<MenuCategory[]> {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewMenu;
   const db = getDb();
 
   const [categoryRows, itemRows, variantRows, addonRows] = await Promise.all([

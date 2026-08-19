@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
 export type OrderStatus =
   | "draft" | "placed" | "accepted" | "preparing"
@@ -116,6 +117,7 @@ async function hydrate(
 
 /** Everything currently on the pass. */
 export async function getActiveOrders(businessId: string) {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewActiveOrders;
   return hydrate(
     businessId,
     and(
@@ -132,6 +134,13 @@ export async function getOrders(
   timezone: string,
 ) {
   if (filter === "active") return getActiveOrders(businessId);
+
+  if (isPreview()) {
+    const { previewOrders } = await import("@/lib/preview/data");
+    return filter === "today"
+      ? previewOrders.filter((o) => o.placedAt !== null)
+      : previewOrders;
+  }
 
   const startOfDay = sql`(date_trunc('day', now() AT TIME ZONE ${timezone}) AT TIME ZONE ${timezone})`;
 
@@ -189,6 +198,7 @@ export async function getOrderTimeline(
 /** Timelines for many orders in one round trip. */
 export async function getTimelines(businessId: string, orderIds: string[]) {
   if (orderIds.length === 0) return new Map<string, TimelineEntry[]>();
+  if (isPreview()) return (await import("@/lib/preview/data")).previewTimelines();
   try {
     const db = getDb();
     const rows = await db

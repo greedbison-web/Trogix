@@ -2,8 +2,9 @@ import "server-only";
 
 import { and, count, desc, eq, isNull, sql, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
-export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+export type DashboardData = Awaited<ReturnType<typeof queryDashboard>>;
 
 const OPEN_STATUSES = [
   "placed",
@@ -16,7 +17,15 @@ const OPEN_STATUSES = [
  * Every figure on the dashboard comes from here. One round trip per metric,
  * all issued in parallel.
  */
-export async function getDashboardData(businessId: string, timezone: string) {
+export async function getDashboardData(
+  businessId: string,
+  timezone: string,
+): Promise<DashboardData> {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewDashboard;
+  return queryDashboard(businessId, timezone);
+}
+
+async function queryDashboard(businessId: string, timezone: string) {
   const db = getDb();
 
   // "Today" is the restaurant's local day, not the server's.

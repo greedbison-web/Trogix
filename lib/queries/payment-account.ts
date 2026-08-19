@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
 export type PaymentAccountView = {
   status: "disconnected" | "connected" | "expired" | "revoked";
@@ -15,6 +16,7 @@ export type PaymentAccountView = {
 export async function getPaymentAccount(
   businessId: string,
 ): Promise<PaymentAccountView> {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewPaymentAccount;
   try {
     const db = getDb();
     const [row] = await db

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TabGlyph, type TabIcon } from "./icons";
 
-const tabs: { icon: TabIcon; label: string; href: string }[] = [
+type Tab = { icon: TabIcon; label: string; href: string };
+
+const marketingTabs: Tab[] = [
   { icon: "today", label: "Today", href: "/" },
   { icon: "apps", label: "Modules", href: "/#modules" },
   { icon: "kitchen", label: "Kitchen", href: "/#kitchen" },
@@ -12,13 +14,23 @@ const tabs: { icon: TabIcon; label: string; href: string }[] = [
   { icon: "search", label: "Search", href: "/#search" },
 ];
 
+/** In preview mode the tabs open the product itself, not the pitch. */
+const previewTabs: Tab[] = [
+  { icon: "today", label: "Today", href: "/" },
+  { icon: "apps", label: "Dashboard", href: "/dashboard" },
+  { icon: "kitchen", label: "Kitchen", href: "/kitchen" },
+  { icon: "arcade", label: "Menu", href: "/dashboard/menu" },
+  { icon: "search", label: "Orders", href: "/dashboard/orders" },
+];
+
 /**
  * The five-tab bar, frosted and pinned to the bottom edge — the single most
  * recognisable piece of the store. It stays on desktop too; the store's iPad
  * layout keeps it as well.
  */
-export function TabBar() {
+export function TabBar({ preview = false }: { preview?: boolean }) {
   const pathname = usePathname();
+  const tabs = preview ? previewTabs : marketingTabs;
 
   return (
     <nav

@@ -2,9 +2,12 @@ import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getActiveImpersonation } from "@/lib/admin/impersonation";
+import { isPreview } from "@/lib/preview/mode";
+import { previewRecord } from "@/lib/preview/data";
 
 /** The signed-in owner's business plus its settings, or null. */
 export async function getBusinessForOwner(ownerId: string) {
+  if (isPreview()) return previewRecord;
   try {
     const db = getDb();
     const rows = await db
@@ -62,6 +65,7 @@ export async function getBusinessById(businessId: string) {
  * through here so impersonation is honoured in exactly one place.
  */
 export async function getActiveBusiness(ownerId: string) {
+  if (isPreview()) return previewRecord;
   const impersonation = await getActiveImpersonation();
   if (impersonation) {
     const record = await getBusinessById(impersonation.businessId);

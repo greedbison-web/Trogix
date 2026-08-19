@@ -1,4 +1,5 @@
 import "server-only";
+import { isPreview } from "@/lib/preview/mode";
 import { cookies } from "next/headers";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
@@ -19,6 +20,7 @@ export type ActiveImpersonation = {
  * be unexpired and unrevoked, which makes revocation instant.
  */
 export async function getActiveImpersonation(): Promise<ActiveImpersonation | null> {
+  if (isPreview()) return null;
   try {
     const store = await cookies();
     const sessionId = store.get(IMPERSONATION_COOKIE)?.value;

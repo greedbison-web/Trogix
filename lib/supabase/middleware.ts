@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "./config";
+import { isPreview } from "@/lib/preview/mode";
 
 /** Routes requiring a session. */
 const PROTECTED = ["/dashboard", "/onboarding", "/kitchen", "/admin"];
@@ -9,6 +10,10 @@ const AUTH_ONLY = ["/login", "/signup"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  // Preview mode: every screen is open, so there is no session to refresh
+  // and nothing to redirect.
+  if (isPreview()) return response;
 
   const { url, anonKey, configured } = supabaseEnv();
   if (!configured) return response;

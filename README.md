@@ -44,6 +44,25 @@ npm run build
 runtime, `GET /api/health` reports which groups are configured — values are
 never printed.
 
+### Preview mode
+
+To walk the owner-side screens without a database, a Supabase project or an
+account:
+
+```bash
+echo "TROGIX_PREVIEW=1" >> .env.local
+npm run dev
+```
+
+Every guard then returns a stand-in owner and every query returns the demo
+cafe in `lib/preview/data.ts` — a full menu, twelve tables, live tickets on
+the pass and a fortnight of trading. `/dashboard`, `/kitchen` and the rest
+open directly, and the homepage's buttons point at them.
+
+It is read-only by intent: server actions still write to the real database,
+so saving fails while preview mode is on. The flag is ignored on a Vercel
+production deployment, so it cannot expose a live restaurant's data.
+
 Migrations are the numbered files in `drizzle/`. Run them in filename order;
 do not use `drizzle-kit push`, which does not know about the custom migrations
 that create the RLS policies and column grants.

@@ -12,6 +12,7 @@ import {
   StoryCard,
   StoryFooter,
 } from "@/components/appstore/StoryCard";
+import { isPreview } from "@/lib/preview/mode";
 import {
   AppList,
   Card,
@@ -32,24 +33,28 @@ import {
  * squircle icon, one-line tagline, blue Get.
  */
 
-const modules: AppEntry[] = [
+/** `previewHref` is the screen the row opens when preview mode is on. */
+const modules: (AppEntry & { previewHref: string })[] = [
   {
     icon: "menu",
     name: "Menu",
     tagline: "Your card, live in seconds — photos, sections, sold-out",
     href: "/signup",
+    previewHref: "/dashboard/menu",
   },
   {
     icon: "orders",
     name: "Ordering",
     tagline: "Guests order from the table. No app to install.",
     href: "/signup",
+    previewHref: "/dashboard/orders",
   },
   {
     icon: "kitchen",
     name: "Kitchen Display",
     tagline: "One pass, ticket ages, nothing printed twice",
     href: "/signup",
+    previewHref: "/kitchen",
   },
   {
     icon: "payments",
@@ -57,18 +62,21 @@ const modules: AppEntry[] = [
     tagline: "Razorpay to your own account. Settlement is yours.",
     href: "/signup",
     note: "Optional",
+    previewHref: "/dashboard/payments",
   },
   {
     icon: "analytics",
     name: "Analytics",
     tagline: "Covers, ticket size, prep time — by night",
     href: "/signup",
+    previewHref: "/dashboard/analytics",
   },
   {
     icon: "tables",
     name: "Tables & QR",
     tagline: "Print-ready codes for every table in the room",
     href: "/signup",
+    previewHref: "/dashboard/tables",
   },
 ];
 
@@ -80,9 +88,20 @@ const plans = [
 ];
 
 export default function HomePage() {
+  /**
+   * Preview mode has no signup to send anyone to: every call to action opens
+   * the screen it describes instead.
+   */
+  const preview = isPreview();
+  const start = preview ? "/dashboard" : "/signup";
+  const account = preview ? "/dashboard" : "/login";
+  const apps = preview
+    ? modules.map((module) => ({ ...module, href: module.previewHref }))
+    : modules;
+
   return (
     <div data-appstore className="min-h-screen bg-as-bg font-sf">
-      <TopBar />
+      <TopBar accountHref={account} />
 
       <main id="main" className="pb-[calc(49px+env(safe-area-inset-bottom)+2rem)] pt-11">
         <Gutter>
@@ -94,14 +113,14 @@ export default function HomePage() {
               eyebrow="Featured · Our pick"
               title="Run the whole evening from one app"
               subtitle="Arrival, menu, ordering, kitchen, payment and the receipt — one system instead of six."
-              href="/signup"
+              href={start}
               art={<ArtService />}
               footer={
                 <StoryFooter
                   icon="trogix"
                   name="Trogix"
                   line="The operating system for restaurants"
-                  href="/signup"
+                  href={start}
                 />
               }
             />
@@ -111,14 +130,14 @@ export default function HomePage() {
               eyebrow="App of the day"
               title="A menu your guests never download"
               subtitle="Scan the code on the table and the card opens on your brand — priced, photographed, always current."
-              href="/m/demo"
+              href={preview ? "/dashboard/menu" : "/m/demo"}
               art={<ArtMenu />}
               footer={
                 <StoryFooter
                   icon="menu"
                   name="Trogix Menu"
                   line="Guest ordering, no install"
-                  href="/m/demo"
+                  href={preview ? "/dashboard/menu" : "/m/demo"}
                   cta="Open"
                 />
               }
@@ -126,8 +145,8 @@ export default function HomePage() {
 
             {/* ---- Module list ---- */}
             <section id="modules" className="scroll-mt-16 space-y-3">
-              <SectionHeader eyebrow="What's inside" title="The Trogix suite" href="/signup" />
-              <AppList apps={modules} />
+              <SectionHeader eyebrow="What's inside" title="The Trogix suite" href={start} />
+              <AppList apps={apps} />
             </section>
 
             {/* ---- Screenshots ---- */}
@@ -142,14 +161,14 @@ export default function HomePage() {
                 eyebrow="Behind the pass"
                 title="Saturday, 8PM, and nothing is lost"
                 subtitle="Tickets land in order, age in colour, and clear with one tap. The room stays quiet."
-                href="/signup"
+                href={preview ? "/kitchen" : "/signup"}
                 art={<ArtKitchen />}
                 footer={
                   <StoryFooter
                     icon="kitchen"
                     name="Kitchen Display"
                     line="Built for the busiest hour"
-                    href="/signup"
+                    href={preview ? "/kitchen" : "/signup"}
                   />
                 }
               />
@@ -243,11 +262,11 @@ export default function HomePage() {
                   The operating system for modern restaurants
                 </p>
               </div>
-              <GetButtonSolid href="/signup" label="Get" />
+              <GetButtonSolid href={start} label="Get" />
               <p className="text-as-foot text-as-label-2">
-                Already running Trogix?{" "}
-                <Link href="/login" className="text-as-blue hover:opacity-70">
-                  Sign in
+                {preview ? "Preview mode — " : "Already running Trogix? "}
+                <Link href={account} className="text-as-blue hover:opacity-70">
+                  {preview ? "open the owner dashboard" : "Sign in"}
                 </Link>
               </p>
             </section>
@@ -259,7 +278,7 @@ export default function HomePage() {
         </Gutter>
       </main>
 
-      <TabBar />
+      <TabBar preview={preview} />
     </div>
   );
 }

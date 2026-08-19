@@ -10,7 +10,13 @@ import { useEffect, useState } from "react";
  * the title scrolls under it, the bar frosts over and the title shrinks into
  * it — the same collapse iOS does.
  */
-export function TopBar({ title = "Today" }: { title?: string }) {
+export function TopBar({
+  title = "Today",
+  accountHref = "/login",
+}: {
+  title?: string;
+  accountHref?: string;
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export function TopBar({ title = "Today" }: { title?: string }) {
           {title}
         </span>
         <Link
-          href="/login"
+          href={accountHref}
           aria-label="Account"
           className="grid h-[30px] w-[30px] place-items-center rounded-full bg-as-fill text-as-label-2 transition-colors hover:bg-as-fill-strong"
         >

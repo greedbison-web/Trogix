@@ -1,6 +1,7 @@
 import "server-only";
 import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
 export type RestaurantNotice = {
   id: string;
@@ -14,6 +15,7 @@ export type RestaurantNotice = {
 export async function getNoticesForBusiness(
   businessId: string,
 ): Promise<RestaurantNotice[]> {
+  if (isPreview()) return [];
   try {
     const db = getDb();
     return await db

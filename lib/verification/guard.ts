@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/server";
+import { isPreview } from "@/lib/preview/mode";
 import { isVerified } from "./service";
 import { setPendingUser } from "./pending";
 
@@ -14,6 +15,9 @@ import { setPendingUser } from "./pending";
 export async function requireVerifiedUser() {
   const user = await getUser();
   if (!user) redirect("/login");
+
+  // Preview mode has no verification records to read.
+  if (isPreview()) return user;
 
   if (!(await isVerified(user.id))) {
     await setPendingUser(user.id);

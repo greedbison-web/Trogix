@@ -1,11 +1,21 @@
 import "server-only";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { isPreview } from "@/lib/preview/mode";
 
-export type Analytics = Awaited<ReturnType<typeof getAnalytics>>;
+export type Analytics = Awaited<ReturnType<typeof queryAnalytics>>;
 
 /** Real trading figures for the last `days` days, in business-local time. */
-export async function getAnalytics(businessId: string, timezone: string, days = 14) {
+export async function getAnalytics(
+  businessId: string,
+  timezone: string,
+  days = 14,
+): Promise<Analytics> {
+  if (isPreview()) return (await import("@/lib/preview/data")).previewAnalytics(days);
+  return queryAnalytics(businessId, timezone, days);
+}
+
+async function queryAnalytics(businessId: string, timezone: string, days = 14) {
   const db = getDb();
   const since = sql`(date_trunc('day', now() AT TIME ZONE ${timezone}) AT TIME ZONE ${timezone}) - ${sql.raw(`interval '${days - 1} days'`)}`;
   const startOfToday = sql`(date_trunc('day', now() AT TIME ZONE ${timezone}) AT TIME ZONE ${timezone})`;
